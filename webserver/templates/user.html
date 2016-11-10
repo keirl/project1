@@ -1,0 +1,21 @@
+<html>
+  <style>
+    body{ 
+      font-size: 15pt;
+      font-family: arial;
+    }
+  </style>
+
+
+<body>
+  <h1>Welcome {{username}}</h1>
+  
+  <div>
+  <p> Cookbooks: <a href="/user/{{userid}}/cookbook/all">view</a> | <a href="/user/{{userid}}/cookbook/new">create new</a> </p>
+  <p> Recipes: <a href="/user/{{userid}}/recipes">view</a> | <a href="/user/{{userid}}/cookbook">create new</a> </p>
+  <p> Pantries: view all | create new </p>
+  </div>
+</body>
+
+
+</html>

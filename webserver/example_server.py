@@ -18,7 +18,7 @@ Read about it online.
 import os
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
-from flask import Flask, request, render_template, g, redirect, Response, url_for
+from flask import Flask, request, render_template, g, redirect, Response
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
@@ -40,7 +40,7 @@ app = Flask(__name__, template_folder=tmpl_dir)
 # Swap out the URI below with the URI for the database created in part 2
 DATABASEURI = "postgresql://kcl2143:2nz62@104.196.175.120/postgres"
 
-# DATABASEURI = "sqlite:///test.db"
+#cDATABASEURI = "sqlite:///test.db"
 
 #
 # This line creates a database engine that knows how to connect to the URI above
@@ -63,7 +63,13 @@ engine = create_engine(DATABASEURI)
 # 
 # The setup code should be deleted once you switch to using the Part 2 postgresql database
 #
-
+engine.execute("""DROP TABLE IF EXISTS test;""")
+engine.execute("""CREATE TABLE IF NOT EXISTS test (
+  id serial,
+  name text
+);""")
+engine.execute("""INSERT INTO test(name) VALUES ('grace hopper'), ('alan turing'), ('ada lovelace');""")
+#
 # END SQLITE SETUP CODE
 #
 
@@ -124,72 +130,79 @@ def index():
 
   # DEBUG: this is debugging code to see what request looks like
   print request.args
-  return render_template("index.html")
 
-  
+
+  #
+  # example of a database query
+  #
+  cursor = g.conn.execute("SELECT name FROM test")
+  names = []
+  for result in cursor:
+    names.append(result['name'])  # can also be accessed using result[0]
+  cursor.close()
+
+  #
+  # Flask uses Jinja templates, which is an extension to HTML where you can
+  # pass data to a template and dynamically generate HTML based on the data
+  # (you can think of it as simple PHP)
+  # documentation: https://realpython.com/blog/python/primer-on-jinja-templating/
+  #
+  # You can see an example template in templates/index.html
+  #
+  # context are the variables that are passed to the template.
+  # for example, "data" key in the context variable defined below will be 
+  # accessible as a variable in index.html:
+  #
+  #     # will print: [u'grace hopper', u'alan turing', u'ada lovelace']
+  #     <div>{{data}}</div>
+  #     
+  #     # creates a <div> tag for each element in data
+  #     # will print: 
+  #     #
+  #     #   <div>grace hopper</div>
+  #     #   <div>alan turing</div>
+  #     #   <div>ada lovelace</div>
+  #     #
+  #     {% for n in data %}
+  #     <div>{{n}}</div>
+  #     {% endfor %}
+  #
+  context = dict(data = names)
+
+
+  #
+  # render_template looks in the templates/ folder for files.
+  # for example, the below file reads template/index.html
+  #
+  return render_template("index.html", **context)
+
 #
-#@app.route('/another')
-#def another():
-#  return render_template("anotherfile.html")
+# This is an example of a different path.  You can see it at
+# 
+#     localhost:8111/another
+#
+# notice that the functio name is another() rather than index()
+# the functions for each app.route needs to have different names
+#
+@app.route('/another')
+def another():
+  return render_template("anotherfile.html")
 
 
 # Example of adding new data to the database
-#@app.route('/add', methods=['POST'])
-#def add():
-#  name = request.form['name']
-#  print name
-#  cmd = 'INSERT INTO test(name) VALUES (:name1), (:name2)';
-#  g.conn.execute(text(cmd), name1 = name, name2 = name);
-#  return redirect('/')
+@app.route('/add', methods=['POST'])
+def add():
+  name = request.form['name']
+  print name
+  cmd = 'INSERT INTO test(name) VALUES (:name1), (:name2)';
+  g.conn.execute(text(cmd), name1 = name, name2 = name);
+  return redirect('/')
 
 
-@app.route('/login', methods=['POST'])
+@app.route('/login')
 def login():
-    #print request.form['username']
-    username = request.form['username']
-    password = request.form['password']
-    print username, password
-    cmd = 'SELECT userid FROM users WHERE username=:var1 AND password=:var2 LIMIT 1'
-    print cmd
-    cursor = g.conn.execute(text(cmd), var1 = username, var2 = password);
-    record = cursor.fetchone()
-    cursor.close()
-    if record is None:
-        return redirect('/new_user')
-    else:  
-        userid = record['userid']
-    return redirect('/user/'+str(userid))
-
-@app.route('/user/<userid>')
-def user(userid):
-    
-    context = dict(userid = userid)
-    context['username'] = 'dude'
-    
-
-
-    return render_template('user.html',**context)
-
-@app.route('/new_user')
-def new_user():
-    return render_template("new_user.html")
-
-@app.route('/add_user', methods=['POST'])
-def add_user():
-    username = request.form['username']
-    password = request.form['password']
-    email = request.form['email']
-    bio = request.form['bio']
-    cmd = 'INSERT INTO users (email, username, password, bio) VALUES (:var1, :var2, :var3, :var4)'
-    
-    ## Add integrity checking
-    g.conn.execute(text(cmd), var1 = email, var2 = username, var3 = password, var4 = bio);
-    cmd = 'SELECT userid FROM users WHERE username=:var1 LIMIT 1'
-    cursor = g.conn.execute(text(cmd), var1 = username);
-    record = cursor.fetchone()
-    userid = record['userid']
-    return redirect('/user/'+str(userid))
-
+    abort(401)
+    this_is_never_executed()
 
 
 if __name__ == "__main__":
