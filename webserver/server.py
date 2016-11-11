@@ -155,26 +155,62 @@ def login():
     record = cursor.fetchone()
     cursor.close()
     if record is None:
-        return redirect('/new_user')
+        return redirect('/users/0')
     else:  
         userid = record['userid']
-    return redirect('/user/'+str(userid))
+    return redirect('/users/'+str(userid))
 
-@app.route('/user/<userid>')
+@app.route('/users/<userid>')
 def user(userid):
-    
-    context = dict(userid = userid)
-    context['username'] = 'dude'
-    
+    userid = int(userid)
+    print type(userid)
+    if userid == 0:
+        return render_template("new_user.html")
+    else:
+        context = dict(userid = userid)
+        context['username'] = 'dude'
+        return render_template('user.html',**context)
+        
+        
+     
+@app.route('/users/<userid>/cookbooks/<action>')
+@app.route('/users/<userid>/cookbooks/<action>/<cbid>') 
+def cookbooks(userid,action,cbid=None):
+    if action == 'view_books':
+        if cbid is None:
+            init_cbid = 0
+        elif int(cbid) >= 0:
+            init_cbid = int(cbid)
+        else:
+            init_cbid = 0
+           
+        cmd = 'SELECT cbid, description FROM cookbooks ORDER BY cbid LIMIT 10 OFFSET :offset_value'
+        cursor = g.conn.execute(text(cmd),offset_value=str(init_cbid));
+        cookbooks = []
+        for record in cursor:
+            cookbooks.append((record['cbid'],record['description']))
+        context = dict(cookbooks = cookbooks)
+        context['userid']=str(userid)
+        context['curr_cbid'] = str(init_cbid)
+        context['next_cbid'] = str(init_cbid + 10)
+        context['prev_cbid'] = str(max(init_cbid - 10,1))
+        context['num_cookbooks'] = len(cookbooks)
+        print cookbooks
+        return render_template("cookbooks.html",**context)
+    elif action == 'view':
+        cmd = 'SELECT cbid, description FROM cookbooks ORDER BY cbid LIMIT 10 OFFSET :offset_value'
+        return render_template("in_progress.html")
+    elif action == 'add':
+        return render_template("in_progress.html")
+    elif int(action)>0:
+        return render_template("in_progress.html")
+    else:
+        return render_template("in_progress.html")
+ 
 
+        
 
-    return render_template('user.html',**context)
-
-@app.route('/new_user')
-def new_user():
-    return render_template("new_user.html")
-
-@app.route('/add_user', methods=['POST'])
+@app.route('/users/add', methods=['POST'])
 def add_user():
     username = request.form['username']
     password = request.form['password']
@@ -188,7 +224,7 @@ def add_user():
     cursor = g.conn.execute(text(cmd), var1 = username);
     record = cursor.fetchone()
     userid = record['userid']
-    return redirect('/user/'+str(userid))
+    return redirect('/users/'+str(userid))
 
 
 
