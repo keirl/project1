@@ -191,41 +191,60 @@ def user_add():
 @app.route('/users/<userid>/cookbooks/<action>')
 @app.route('/users/<userid>/cookbooks/<action>/<cbid>') 
 def cookbooks(userid,action,cbid=None):
-    if action == 'view_all' or 'view':
-        # This is to see the list of cookbooks
-        if cbid is None:
-            init_cbid = 0
-        elif int(cbid) >= 0:
-            init_cbid = int(cbid)
-        else:
-            init_cbid = 0
-        
-        cookbooks = []
-        if action == 'view_all':
-            cmd = 'SELECT cbid, description FROM cookbooks ORDER BY cbid LIMIT 10 OFFSET :offset_value'
-            cursor = g.conn.execute(text(cmd),offset_value=str(init_cbid));
+     # This is to see the list of cookbooks
+    CBID_INCR = '10'
+    if cbid is None:
+        init_cbid = 0
+    elif int(cbid) >= 0:
+        init_cbid = int(cbid)
+    else:
+        init_cbid = 0
+    
+    context = {}
             
-            cmd = 'SELECT cbid FROM cookbookowners ORDER BY cbid LIMIT 10 OFFSET :offset_value'
-            cursor_owned = g.conn.execute(text(cmd),offset_value=str(init_cbid));
             
-        elif action == 'view':
-            cmd = 'SELECT c.cbid, c.description FROM cookbooks as c, cookbookowners as cbo WHERE c.cbid=cbo.cbid AND cbo.userid=:userid ORDER BY c.cbid LIMIT 10 OFFSET :offset_value'
-            cursor = g.conn.execute(text(cmd),offset_value=str(init_cbid),userid=userid);
-
+    if action == 'view_all': 
+        cmd = 'SELECT cbid FROM cookbookowners WHERE userid=:userid ORDER BY cbid LIMIT :cbid_incr OFFSET :offset_value'
+        cursor = g.conn.execute(text(cmd),offset_value=str(init_cbid),cbid_incr=CBID_INCR,userid=userid)
+        cbid_owned = []
         for record in cursor:
-            cookbooks.append((record['cbid'],record['description']))
-        context = dict(cookbooks = cookbooks)
+            cbid_owned.append(record['cbid'])
+           
+        cmd = 'SELECT cbid, description FROM cookbooks ORDER BY cbid LIMIT :cbid_incr OFFSET :offset_value'
+        cursor = g.conn.execute(text(cmd),offset_value=str(init_cbid),cbid_incr=CBID_INCR);
+        cookbooks = []
+        for record in cursor:
+            if record['cbid'] in cbid_owned:
+                cookbooks.append((record['cbid'],record['description'],'1'))
+            else:
+                cookbooks.append((record['cbid'],record['description'],'0'))
+        
+        context['cookbooks'] = cookbooks
         context['userid']=str(userid)
         context['curr_cbid'] = str(init_cbid)
-        context['next_cbid'] = str(init_cbid + 10)
-        context['prev_cbid'] = str(max(init_cbid - 10,1))
+        context['next_cbid'] = str(init_cbid + int(CBID_INCR))
+        context['prev_cbid'] = str(max(init_cbid - int(CBID_INCR),0))
         context['num_cookbooks'] = len(cookbooks)
-        if action == 'view_all':
-            context['type']='view_all'
-            context['message']="Displaying all cookbooks"
-        elif action == 'view':
-            context['type']='view'
-            context['message']="Displaying your cookbooks"
+        context['type']='view_all'
+        context['message']="Displaying all cookbooks"
+        
+        print cookbooks
+        return render_template("cookbooks_all.html",**context)
+    if action == 'view':
+        # This is to see the list of cookbooks
+        cookbooks = []
+        cmd = 'SELECT c.cbid, c.description FROM cookbooks as c, cookbookowners as cbo WHERE c.cbid=cbo.cbid AND cbo.userid=:userid ORDER BY c.cbid LIMIT :cbid_incr OFFSET :offset_value'
+        cursor = g.conn.execute(text(cmd),offset_value=str(init_cbid),userid=userid,cbid_incr=CBID_INCR);
+        for record in cursor:
+            cookbooks.append((record['cbid'],record['description']))
+        context['cookbooks'] = cookbooks
+        context['userid']=str(userid)
+        context['curr_cbid'] = str(init_cbid)
+        context['next_cbid'] = str(init_cbid + int(CBID_INCR))
+        context['prev_cbid'] = str(max(init_cbid - int(CBID_INCR),0))
+        context['num_cookbooks'] = len(cookbooks)
+        context['type']='view'
+        context['message']="Displaying your cookbooks"
         print cookbooks
         return render_template("cookbooks.html",**context)
     else:
