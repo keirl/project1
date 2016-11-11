@@ -159,59 +159,20 @@ def login():
     else:  
         userid = record['userid']
     return redirect('/users/'+str(userid))
-
+    
 @app.route('/users/<userid>')
 def user(userid):
     userid = int(userid)
     print type(userid)
     if userid == 0:
-        return render_template("new_user.html")
+        return render_template("user_new.html")
     else:
         context = dict(userid = userid)
         context['username'] = 'dude'
         return render_template('user.html',**context)
-        
-        
-     
-@app.route('/users/<userid>/cookbooks/<action>')
-@app.route('/users/<userid>/cookbooks/<action>/<cbid>') 
-def cookbooks(userid,action,cbid=None):
-    if action == 'view_books':
-        if cbid is None:
-            init_cbid = 0
-        elif int(cbid) >= 0:
-            init_cbid = int(cbid)
-        else:
-            init_cbid = 0
-           
-        cmd = 'SELECT cbid, description FROM cookbooks ORDER BY cbid LIMIT 10 OFFSET :offset_value'
-        cursor = g.conn.execute(text(cmd),offset_value=str(init_cbid));
-        cookbooks = []
-        for record in cursor:
-            cookbooks.append((record['cbid'],record['description']))
-        context = dict(cookbooks = cookbooks)
-        context['userid']=str(userid)
-        context['curr_cbid'] = str(init_cbid)
-        context['next_cbid'] = str(init_cbid + 10)
-        context['prev_cbid'] = str(max(init_cbid - 10,1))
-        context['num_cookbooks'] = len(cookbooks)
-        print cookbooks
-        return render_template("cookbooks.html",**context)
-    elif action == 'view':
-        cmd = 'SELECT cbid, description FROM cookbooks ORDER BY cbid LIMIT 10 OFFSET :offset_value'
-        return render_template("in_progress.html")
-    elif action == 'add':
-        return render_template("in_progress.html")
-    elif int(action)>0:
-        return render_template("in_progress.html")
-    else:
-        return render_template("in_progress.html")
- 
-
-        
-
+    
 @app.route('/users/add', methods=['POST'])
-def add_user():
+def user_add():
     username = request.form['username']
     password = request.form['password']
     email = request.form['email']
@@ -224,7 +185,70 @@ def add_user():
     cursor = g.conn.execute(text(cmd), var1 = username);
     record = cursor.fetchone()
     userid = record['userid']
-    return redirect('/users/'+str(userid))
+    return redirect('/users/'+str(userid))    
+        
+     
+@app.route('/users/<userid>/cookbooks/<action>')
+@app.route('/users/<userid>/cookbooks/<action>/<cbid>') 
+def cookbooks(userid,action,cbid=None):
+    if action == 'view_all' or 'view':
+        # This is to see the list of cookbooks
+        if cbid is None:
+            init_cbid = 0
+        elif int(cbid) >= 0:
+            init_cbid = int(cbid)
+        else:
+            init_cbid = 0
+        
+        cookbooks = []
+        if action == 'view_all':
+            cmd = 'SELECT cbid, description FROM cookbooks ORDER BY cbid LIMIT 10 OFFSET :offset_value'
+            cursor = g.conn.execute(text(cmd),offset_value=str(init_cbid));
+            
+            cmd = 'SELECT cbid FROM cookbookowners ORDER BY cbid LIMIT 10 OFFSET :offset_value'
+            cursor_owned = g.conn.execute(text(cmd),offset_value=str(init_cbid));
+            
+        elif action == 'view':
+            cmd = 'SELECT c.cbid, c.description FROM cookbooks as c, cookbookowners as cbo WHERE c.cbid=cbo.cbid AND cbo.userid=:userid ORDER BY c.cbid LIMIT 10 OFFSET :offset_value'
+            cursor = g.conn.execute(text(cmd),offset_value=str(init_cbid),userid=userid);
+
+        for record in cursor:
+            cookbooks.append((record['cbid'],record['description']))
+        context = dict(cookbooks = cookbooks)
+        context['userid']=str(userid)
+        context['curr_cbid'] = str(init_cbid)
+        context['next_cbid'] = str(init_cbid + 10)
+        context['prev_cbid'] = str(max(init_cbid - 10,1))
+        context['num_cookbooks'] = len(cookbooks)
+        if action == 'view_all':
+            context['type']='view_all'
+            context['message']="Displaying all cookbooks"
+        elif action == 'view':
+            context['type']='view'
+            context['message']="Displaying your cookbooks"
+        print cookbooks
+        return render_template("cookbooks.html",**context)
+    else:
+        return redirect('/users/'+str(userid)+'/cookbooks/<action>/<cbid>')
+ 
+@app.route('/users/<userid>/cookbook/<action>')
+@app.route('/users/<userid>/cookbook/<action>/<cbid>') 
+def cookbook(userid,action,cbid=None):
+    if action == 'add':
+        cmd = 'SELECT recid, recipename FROM recipes'
+        cursor = g.conn.execute(text(cmd));
+        recipes = []
+        for record in cursor:
+            recipes.append((record['recid'],record['recipename']))
+        context = dict(recipes = recipes)
+        context['userid']=str(userid)
+        return render_template("in_progress.html")
+    elif action == 'view':
+        return render_template("in_progress.html")
+    else:
+        return render_template("in_progress.html")
+
+
 
 
 
