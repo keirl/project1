@@ -1,23 +1,25 @@
 {% extends "user.html" %}
 {% block content %}
-<div><h2>Your current cookbooks</h2></div>
+<div><h2>{{cbname}}</h2></div>
 
 <div>
     
-    <form method="post" action="/users/{{userid}}/cookbooks/remove/{{curr_idx}}">
+    <form method="post" action="/users/{{userid}}/cookbook/remove/{{cbid}}/{{curr_idx}}">
     <table>
         <tr>
-            <th>Cookbook Name</th>
-            <th>Remove?</th>
+            <th></th>
+            <th>Recipe Name</th>
+            
         </tr>
-        {% for cbid, description in cookbooks_owned %}
+        {% for recid, description in recipes_in_cb %}
         <tr>   
-            <td><a href="/users/{{userid}}/cookbook/view/{{cbid}}">{{description}}</a></td>
-            <td><input type="checkbox" name="{{cbid}}" value="True"></td>
+            <td><input type="checkbox" name="{{recid}}" value="True"></td>
+            <td><a href="/users/{{userid}}/recipe/view/{{recid}}">{{description}}</a></td>
+            
         </tr> 
         {% endfor %}
     </table>
-    <td><input type="submit" value="Remove Cookbook"> <input type="reset"></td>
+    <td><input type="submit" value="Remove Recipe"> <input type="reset"></td>
     </form>
     
 </div>
@@ -27,21 +29,23 @@
 
 <div><h2>Available cookbooks</h2></div>
 <div>
-    <form method="post" action="/users/{{userid}}/cookbooks/add/{{curr_idx}}">
+    <form method="post" action="/users/{{userid}}/cookbook/add/{{cbid}}/{{curr_idx}}">
     <table>
         <tr>
-            <th>Cookbook Name</th>
-            <th>Add?</th>
+            <th></th>
+            <th>Recipe Name</th>
+            
         </tr>
-        {% for cbid, description in cookbooks %}
+        {% for recid, description in recipes_not_in_cb %}
         <tr>
-            <td><a href="/users/{{userid}}/cookbook/view/{{cbid}}">{{description}}</a></td>
-            <td><input type="checkbox" name="{{cbid}}" value="True"></td>
+            <td><input type="checkbox" name="{{recid}}" value="True"></td>
+            <td><a href="/users/{{userid}}/recipe/view/{{recid}}">{{description}}</a></td>
+            
         </tr> 
         {% endfor %}
     </table>
-    <p> <a href="/users/{{userid}}/cookbooks/view/{{prev_idx}}">Prev</a> | <a href="/users/{{userid}}/cookbooks/view/{{next_idx}}">Next</a></p>
-    <p><input type="submit" value="Add Cookbook"> <input type="reset"></p
+    <p> <a href="/users/{{userid}}/cookbook/view/{{cbid}}/{{prev_idx}}">Prev</a> | <a href="/users/{{userid}}/cookbook/view/{{cbid}}/{{next_idx}}">Next</a></p>
+    <p><input type="submit" value="Add Recipe"> <input type="reset"></p
     
     </form>
     

@@ -184,82 +184,158 @@ def user_add():
     cmd = 'SELECT userid FROM users WHERE username=:var1 LIMIT 1'
     cursor = g.conn.execute(text(cmd), var1 = username);
     record = cursor.fetchone()
+    cursor.close()
     userid = record['userid']
     return redirect('/users/'+str(userid))    
         
      
 @app.route('/users/<userid>/cookbooks/view', methods=['GET'])
-@app.route('/users/<userid>/cookbooks/view/<cbid>') 
-def cookbooks_view(userid,cbid=None):
+@app.route('/users/<userid>/cookbooks/view/<cbidx>') 
+def cookbooks_view(userid,cbidx=None):
      # This is to see the list of cookbooks
     context = {}
-    CBID_INCR = 10                   
+    CBIDX_INCR = 10                   
 
-    if cbid is None:
-        init_cbid = 0
-    elif int(cbid) >= 0:
-        init_cbid = int(cbid)
+    if cbidx is None:
+        init_cbidx = 0
+    elif int(cbidx) >= 0:
+        init_cbidx = int(cbidx)
     else:
-        init_cbid = 0
+        init_cbidx = 0
    
-    cmd = 'SELECT c.cbid as cbid, c.description as description FROM cookbooks as c, cookbookowners as cbo WHERE c.cbid=cbo.cbid AND cbo.userid=:userid ORDER BY c.cbid'
+    cmd = 'SELECT c.cbid as cbid, c.description as description \
+        FROM cookbooks as c, cookbookowners as cbo \
+        WHERE c.cbid=cbo.cbid AND cbo.userid=:userid \
+        ORDER BY c.cbid'
     cursor = g.conn.execute(text(cmd),userid=userid)
     cookbooks_owned = []
     for record in cursor:
         cookbooks_owned.append((record['cbid'],record['description']))
+    cursor.close()
     context['cookbooks_owned'] = cookbooks_owned    
     
-    cmd = 'SELECT c.cbid AS cb, c.description AS d FROM cookbooks AS c WHERE c.cbid NOT IN (SELECT cbo.cbid FROM cookbookowners AS cbo WHERE userid=:userid) ORDER BY c.cbid LIMIT :cbid_incr OFFSET :offset_value '
-    cursor = g.conn.execute(text(cmd),offset_value=int(init_cbid),cbid_incr=CBID_INCR,userid=userid);
+    cmd = 'SELECT c.cbid AS cb, c.description AS d FROM cookbooks AS c \
+        WHERE c.cbid NOT IN \
+            (SELECT cbo.cbid FROM cookbookowners AS cbo WHERE userid=:userid) \
+        ORDER BY c.cbid LIMIT :cbidx_incr OFFSET :offset_value '
+    cursor = g.conn.execute(text(cmd),offset_value=int(init_cbidx),cbidx_incr=CBIDX_INCR,userid=userid);
     cookbooks = []
     for record in cursor:
         cookbooks.append((record['cb'],record['d']))
+    cursor.close()
     context['cookbooks'] = cookbooks
         
     context['userid']=str(userid)
-    context['curr_idx'] = str(init_cbid)
-    context['next_idx'] = str(init_cbid + CBID_INCR)
-    context['prev_idx'] = str(max(init_cbid - CBID_INCR,0))
+    context['curr_idx'] = str(init_cbidx)
+    context['next_idx'] = str(init_cbidx + CBIDX_INCR)
+    context['prev_idx'] = str(max(init_cbidx - CBIDX_INCR,0))
         
     print cookbooks
     return render_template("cookbooks.html",**context)
     
-@app.route('/users/<userid>/cookbooks/add/<curr_cbid>', methods=['POST'])
-def cookbooks_add(userid,curr_cbid=0):
+@app.route('/users/<userid>/cookbooks/add/<curr_idx>', methods=['POST'])
+def cookbooks_add(userid,curr_idx=0):
     for cbid in request.form:
         print cbid
         cmd = 'INSERT INTO cookbookowners (cbid, userid) VALUES (:cbid, :userid)'
         ## Add integrity checking
         g.conn.execute(text(cmd), cbid = int(cbid), userid = int(userid));
-    return redirect('/users/'+str(userid)+'/cookbooks/view/'+curr_cbid)
+    return redirect('/users/'+str(userid)+'/cookbooks/view/'+curr_idx)
     
-@app.route('/users/<userid>/cookbooks/remove/<curr_cbid>', methods=['POST'])
-def cookbooks_remove(userid,curr_cbid=0):
+@app.route('/users/<userid>/cookbooks/remove/<curr_idx>', methods=['POST'])
+def cookbooks_remove(userid,curr_idx=0):
     for cbid in request.form:
         print cbid
         cmd = 'DELETE FROM cookbookowners WHERE cbid=:cbid AND userid=:userid'
         ## Add integrity checking
         g.conn.execute(text(cmd), cbid = int(cbid), userid = int(userid));
-    return redirect('/users/'+str(userid)+'/cookbooks/view/'+curr_cbid)
+    return redirect('/users/'+str(userid)+'/cookbooks/view/'+curr_idx)
 
-@app.route('/users/<userid>/cookbook/view/<cbid>') 
-def cookbook_view(userid):
-    cmd = 'SELECT recid, recipename FROM recipes'
-    cursor = g.conn.execute(text(cmd));
-    recipes = []
-    for record in cursor:
-        recipes.append((record['recid'],record['recipename']))
-    context = dict(recipes = recipes)
-    context['userid']=str(userid)
-    return render_template("in_progress.html")
-    elif action == 'view':
-        return render_template("in_progress.html")
+@app.route('/users/<userid>/cookbook/view/<cbid>')
+@app.route('/users/<userid>/cookbook/view/<cbid>/<recidx>') 
+def cookbook_view(userid,cbid,recidx=0):
+    RECIDX_INCR = 10
+    
+    # Check recidx
+    if int(recidx) >= 0:
+        init_recidx = int(recidx)
     else:
-        return render_template("in_progress.html")
+        init_recidx = 0
+    
+    context={}
+    
+    # Get recipes in cookbook
+    cmd = 'SELECT r.recid AS recid, r.recipename AS recipename \
+        FROM cookbookcontents AS cc, recipes AS r \
+        WHERE cc.cbid=:cbid AND cc.recid=r.recid'
+    cursor = g.conn.execute(text(cmd),cbid=cbid);
+    recipes_in_cb = []
+    for record in cursor:
+        recipes_in_cb.append((record['recid'],record['recipename']))
+    cursor.close()
+    context['recipes_in_cb'] = recipes_in_cb
+    
+    print recipes_in_cb
+    
+    # Get categories, average ratings, your rating
+    
+    # Get recipes not in cookbook
+    cmd = 'SELECT r.recid AS recid, r.recipename AS recipename \
+        FROM recipes AS r \
+        WHERE r.recid NOT IN \
+            (SELECT cc.recid  FROM cookbookcontents AS cc WHERE cc.cbid=:cbid) \
+        ORDER BY r.recid LIMIT :recidx_incr OFFSET :recidx'
+    cursor = g.conn.execute(text(cmd),cbid=cbid,recidx_incr=RECIDX_INCR,recidx=init_recidx);
+    recipes_not_in_cb = []
+    for record in cursor:
+        recipes_not_in_cb.append((record['recid'],record['recipename']))
+    cursor.close()
+    
+    print recipes_not_in_cb
+    context['recipes_not_in_cb'] = recipes_not_in_cb
+    # Get categories and ratings
+    
+    # Get name of cookbook
+    cmd = 'SELECT description FROM cookbooks WHERE cbid=:cbid'
+    cursor = g.conn.execute(text(cmd),cbid=cbid);
+    temp=cursor.fetchone()
+    context['cbname'] = temp['description']
+    context['cbid'] = cbid
+    print context['cbname']
+    cursor.close()
+    
+    context['userid']=str(userid)
+    
+    context['userid']=str(userid)
+    context['curr_idx'] = str(init_recidx)
+    context['next_idx'] = str(init_recidx + RECIDX_INCR)
+    context['prev_idx'] = str(max(init_recidx - RECIDX_INCR,0))
+    
+    return render_template("cookbook.html",**context)
 
+@app.route('/users/<userid>/cookbook/add/<cbid>', methods=['POST'])
+@app.route('/users/<userid>/cookbook/add/<cbid>/<curr_idx>', methods=['POST'])
+def cookbook_add(userid,cbid,curr_idx=0):
+    for recid in request.form:
+        print recid
+        cmd = 'INSERT INTO cookbookcontents (cbid, recid) VALUES (:cbid, :recid)'
+        ## Add integrity checking
+        g.conn.execute(text(cmd), cbid = int(cbid), recid = int(recid));
+    return redirect('/users/'+str(userid)+'/cookbook/view/'+cbid+'/'+str(curr_idx))
 
+@app.route('/users/<userid>/cookbook/remove/<cbid>', methods=['POST'])    
+@app.route('/users/<userid>/cookbook/remove/<cbid>/<curr_idx>', methods=['POST'])
+def cookbook_remove(userid,cbid,curr_idx=0):
+    for recid in request.form:
+        print recid
+        cmd = 'DELETE FROM cookbookcontents WHERE cbid=:cbid AND recid=:recid'
+        ## Add integrity checking
+        g.conn.execute(text(cmd), cbid = int(cbid), recid = int(recid));
+    return redirect('/users/'+str(userid)+'/cookbook/view/'+cbid+'/'+str(curr_idx))
 
-
+@app.route('/users/<userid>/cookbook/new
+def cookbook_remove(userid):
+    pass
 
 if __name__ == "__main__":
   import click
