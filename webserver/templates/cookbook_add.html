@@ -1,0 +1,27 @@
+{% extends "user.html" %}
+{% block content %}
+<div>
+
+{% if num_cookbooks > 0 %}
+<ul>
+{% for cbid, description in cookbooks %}
+<li><a href="/users/{{userid}}/cookbooks/view/{{cbid}}">{{description}}</a></li>
+{% endfor %}
+</ul>
+<p> <a href="/users/{{userid}}/cookbooks/view_books/{{prev_cbid}}">Prev</a> | <a href="/users/{{userid}}/cookbooks/view_books/{{next_cbid}}">Next</a></p>
+{% else %}
+<p> Oops! No more cookbooks.  <a href="/users/{{userid}}/cookbooks/view_books/1">Back to the beginning?</a></p>
+{% endif %}
+
+
+</div>
+<div>
+<a href="/users/{{userid}}/cookbooks/add">Create New</a>
+</div>
+<p>
+
+
+
+
+{% endblock %}
+
