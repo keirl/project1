@@ -305,8 +305,6 @@ def cookbook_view(userid,cbid,recidx=0):
     cursor.close()
     
     context['userid']=str(userid)
-    
-    context['userid']=str(userid)
     context['curr_idx'] = str(init_recidx)
     context['next_idx'] = str(init_recidx + RECIDX_INCR)
     context['prev_idx'] = str(max(init_recidx - RECIDX_INCR,0))
@@ -333,9 +331,55 @@ def cookbook_remove(userid,cbid,curr_idx=0):
         g.conn.execute(text(cmd), cbid = int(cbid), recid = int(recid));
     return redirect('/users/'+str(userid)+'/cookbook/view/'+cbid+'/'+str(curr_idx))
 
-@app.route('/users/<userid>/cookbook/new
-def cookbook_remove(userid):
-    pass
+@app.route('/users/<userid>/cookbook/new')
+def cookbook_new(userid):
+    context = {}
+    context['userid']=userid
+    return render_template('cookbook_new.html',**context) 
+    
+@app.route('/users/<userid>/cookbook/add_new', methods=['POST'])
+def cookbook_add_new(userid):
+    new_cb = request.form['name']
+    print new_cb
+    cmd = 'INSERT INTO cookbooks (description) VALUES (:new_cb) RETURNING cbid'
+    cursor = g.conn.execute(text(cmd), new_cb=new_cb);
+    temp=cursor.fetchone()
+    cbid = temp['cbid']
+    return redirect('/users/'+str(userid)+'/cookbook/view/'+str(cbid))
+    
+@app.route('/users/<userid>/recipes/view')
+@app.route('/users/<userid>/recipes/view/<recidx>')
+def recipes_view(userid,recidx=0):
+
+    RECIDX_INCR = 20
+    
+    # Check recidx
+    if int(recidx) >= 0:
+        init_recidx = int(recidx)
+    else:
+        init_recidx = 0
+    
+    context={}
+   
+    cmd = 'SELECT recid, recipename FROM recipes \
+        ORDER BY recid LIMIT :recidx_incr OFFSET :recidx'
+    cursor = g.conn.execute(text(cmd),recidx_incr=RECIDX_INCR,recidx=init_recidx);
+    recipes = []
+    for record in cursor:
+        recipes.append((record['recid'],record['recipename']))
+    cursor.close()
+    
+    print recipes
+    context['recipes'] = recipes
+    
+    
+    context['userid']=str(userid)
+    context['curr_idx'] = str(init_recidx)
+    context['next_idx'] = str(init_recidx + RECIDX_INCR)
+    context['prev_idx'] = str(max(init_recidx - RECIDX_INCR,0))
+        
+    return render_template("recipes.html",**context)
+
 
 if __name__ == "__main__":
   import click
