@@ -188,80 +188,70 @@ def user_add():
     return redirect('/users/'+str(userid))    
         
      
-@app.route('/users/<userid>/cookbooks/<action>')
-@app.route('/users/<userid>/cookbooks/<action>/<cbid>') 
-def cookbooks(userid,action,cbid=None):
+@app.route('/users/<userid>/cookbooks/view', methods=['GET'])
+@app.route('/users/<userid>/cookbooks/view/<cbid>') 
+def cookbooks_view(userid,cbid=None):
      # This is to see the list of cookbooks
-    CBID_INCR = '10'
+    context = {}
+    CBID_INCR = 10                   
+
     if cbid is None:
         init_cbid = 0
     elif int(cbid) >= 0:
         init_cbid = int(cbid)
     else:
         init_cbid = 0
+   
+    cmd = 'SELECT c.cbid as cbid, c.description as description FROM cookbooks as c, cookbookowners as cbo WHERE c.cbid=cbo.cbid AND cbo.userid=:userid ORDER BY c.cbid'
+    cursor = g.conn.execute(text(cmd),userid=userid)
+    cookbooks_owned = []
+    for record in cursor:
+        cookbooks_owned.append((record['cbid'],record['description']))
+    context['cookbooks_owned'] = cookbooks_owned    
     
-    context = {}
-            
-            
-    if action == 'view_all': 
-        cmd = 'SELECT cbid FROM cookbookowners WHERE userid=:userid ORDER BY cbid LIMIT :cbid_incr OFFSET :offset_value'
-        cursor = g.conn.execute(text(cmd),offset_value=str(init_cbid),cbid_incr=CBID_INCR,userid=userid)
-        cbid_owned = []
-        for record in cursor:
-            cbid_owned.append(record['cbid'])
-           
-        cmd = 'SELECT cbid, description FROM cookbooks ORDER BY cbid LIMIT :cbid_incr OFFSET :offset_value'
-        cursor = g.conn.execute(text(cmd),offset_value=str(init_cbid),cbid_incr=CBID_INCR);
-        cookbooks = []
-        for record in cursor:
-            if record['cbid'] in cbid_owned:
-                cookbooks.append((record['cbid'],record['description'],'1'))
-            else:
-                cookbooks.append((record['cbid'],record['description'],'0'))
+    cmd = 'SELECT c.cbid AS cb, c.description AS d FROM cookbooks AS c WHERE c.cbid NOT IN (SELECT cbo.cbid FROM cookbookowners AS cbo WHERE userid=:userid) ORDER BY c.cbid LIMIT :cbid_incr OFFSET :offset_value '
+    cursor = g.conn.execute(text(cmd),offset_value=int(init_cbid),cbid_incr=CBID_INCR,userid=userid);
+    cookbooks = []
+    for record in cursor:
+        cookbooks.append((record['cb'],record['d']))
+    context['cookbooks'] = cookbooks
         
-        context['cookbooks'] = cookbooks
-        context['userid']=str(userid)
-        context['curr_cbid'] = str(init_cbid)
-        context['next_cbid'] = str(init_cbid + int(CBID_INCR))
-        context['prev_cbid'] = str(max(init_cbid - int(CBID_INCR),0))
-        context['num_cookbooks'] = len(cookbooks)
-        context['type']='view_all'
-        context['message']="Displaying all cookbooks"
+    context['userid']=str(userid)
+    context['curr_idx'] = str(init_cbid)
+    context['next_idx'] = str(init_cbid + CBID_INCR)
+    context['prev_idx'] = str(max(init_cbid - CBID_INCR,0))
         
-        print cookbooks
-        return render_template("cookbooks_all.html",**context)
-    if action == 'view':
-        # This is to see the list of cookbooks
-        cookbooks = []
-        cmd = 'SELECT c.cbid, c.description FROM cookbooks as c, cookbookowners as cbo WHERE c.cbid=cbo.cbid AND cbo.userid=:userid ORDER BY c.cbid LIMIT :cbid_incr OFFSET :offset_value'
-        cursor = g.conn.execute(text(cmd),offset_value=str(init_cbid),userid=userid,cbid_incr=CBID_INCR);
-        for record in cursor:
-            cookbooks.append((record['cbid'],record['description']))
-        context['cookbooks'] = cookbooks
-        context['userid']=str(userid)
-        context['curr_cbid'] = str(init_cbid)
-        context['next_cbid'] = str(init_cbid + int(CBID_INCR))
-        context['prev_cbid'] = str(max(init_cbid - int(CBID_INCR),0))
-        context['num_cookbooks'] = len(cookbooks)
-        context['type']='view'
-        context['message']="Displaying your cookbooks"
-        print cookbooks
-        return render_template("cookbooks.html",**context)
-    else:
-        return redirect('/users/'+str(userid)+'/cookbooks/<action>/<cbid>')
- 
-@app.route('/users/<userid>/cookbook/<action>')
-@app.route('/users/<userid>/cookbook/<action>/<cbid>') 
-def cookbook(userid,action,cbid=None):
-    if action == 'add':
-        cmd = 'SELECT recid, recipename FROM recipes'
-        cursor = g.conn.execute(text(cmd));
-        recipes = []
-        for record in cursor:
-            recipes.append((record['recid'],record['recipename']))
-        context = dict(recipes = recipes)
-        context['userid']=str(userid)
-        return render_template("in_progress.html")
+    print cookbooks
+    return render_template("cookbooks.html",**context)
+    
+@app.route('/users/<userid>/cookbooks/add/<curr_cbid>', methods=['POST'])
+def cookbooks_add(userid,curr_cbid=0):
+    for cbid in request.form:
+        print cbid
+        cmd = 'INSERT INTO cookbookowners (cbid, userid) VALUES (:cbid, :userid)'
+        ## Add integrity checking
+        g.conn.execute(text(cmd), cbid = int(cbid), userid = int(userid));
+    return redirect('/users/'+str(userid)+'/cookbooks/view/'+curr_cbid)
+    
+@app.route('/users/<userid>/cookbooks/remove/<curr_cbid>', methods=['POST'])
+def cookbooks_remove(userid,curr_cbid=0):
+    for cbid in request.form:
+        print cbid
+        cmd = 'DELETE FROM cookbookowners WHERE cbid=:cbid AND userid=:userid'
+        ## Add integrity checking
+        g.conn.execute(text(cmd), cbid = int(cbid), userid = int(userid));
+    return redirect('/users/'+str(userid)+'/cookbooks/view/'+curr_cbid)
+
+@app.route('/users/<userid>/cookbook/view/<cbid>') 
+def cookbook_view(userid):
+    cmd = 'SELECT recid, recipename FROM recipes'
+    cursor = g.conn.execute(text(cmd));
+    recipes = []
+    for record in cursor:
+        recipes.append((record['recid'],record['recipename']))
+    context = dict(recipes = recipes)
+    context['userid']=str(userid)
+    return render_template("in_progress.html")
     elif action == 'view':
         return render_template("in_progress.html")
     else:
