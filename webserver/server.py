@@ -143,6 +143,18 @@ def index():
 #  g.conn.execute(text(cmd), name1 = name, name2 = name);
 #  return redirect('/')
 
+def ing_exists(ingname):
+    cmd = 'SELECT ingid, shortname FROM ingredients WHERE shortname=:shortname'
+    cursor = g.conn.execute(text(cmd),shortname=ingname);
+    valid = cursor.rowcount
+    record = cursor.fetchone()
+    cursor.close()
+	
+    if valid>0:
+	return record['ingid']
+   
+    return -1
+
 def valid_userid(userid):
     cmd = 'SELECT userid FROM users WHERE userid=:userid'
     cursor = g.conn.execute(text(cmd),userid=userid);
@@ -588,6 +600,28 @@ def pantry_ingredients_remove(userid,panid):
         g.conn.execute(text(cmd), ingid = int(ingid), panid=panid);
     return redirect('/users/'+str(userid)+'/pantries/view/' +str(panid))
 
+@app.route('/users/<userid>/pantries/<panid>/add/ingredients', methods=['POST'])
+def pantry_ingredients_add(userid,panid):
+    print "OUTPUT ING\n"
+    ingname=request.form['ing']; 
+    ingid=ing_exists(ingname)
+    if ingid>=0:
+	cmd = 'INSERT INTO pantriescontain (ingid) VALUES(:ingid)'
+	g.conn.execute(text(cmd), ingid=ingid);
+        return redirect('/users/'+str(userid)+'/pantries/view/' +str(panid))
+
+    cmd='INSERT INTO ingredients (shortname) VALUES(:shortname)'
+    g.conn.execute(text(cmd),shortname=ingname);
+
+    ingid=ing_exists(ingname)
+    cmd='INSERT INTO pantriescontain (panid, ingid) VALUES(:panid, :ingid)'
+    g.conn.execute(text(cmd),panid=panid,ingid=ingid)
+	
+
+	#cmd = 'DELETE FROM pantriescontain WHERE panid=:panid AND ingid=:ingid'
+        ## Add integrity checking
+        #g.conn.execute(text(cmd), ingid = int(ingid), panid=panid);
+    return redirect('/users/'+str(userid)+'/pantries/view/' +str(panid))
 
 @app.route('/users/<userid>/lists/view/')
 def list_view(userid):
