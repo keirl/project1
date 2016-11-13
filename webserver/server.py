@@ -481,6 +481,24 @@ def recipe_update_categories2(userid,recid):
 def recipe_update_categories3(userid,recid):
     return redirect('in_progress.html')
 
+
+@app.route('/users/<userid>/pantries/view/')
+def pantry_view(userid):
+    context={}
+   
+    cmd = 'SELECT location FROM pantries LEFT JOIN users on users.userid=pantries.userid where users.userid=:userid;'
+    cursor = g.conn.execute(text(cmd),userid=userid);
+    record = cursor.fetchone()
+    pantries_owned = []
+    for record in cursor:
+        pantries_owned.append(record['location'])
+    #context['location']=record['location']
+    #context['url']=record['url']
+    cursor.close()
+    
+    context['pantries_owned'] = pantries_owned    
+    return render_template("pantries.html",**context)
+
 if __name__ == "__main__":
   import click
 

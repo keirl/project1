@@ -1,0 +1,19 @@
+{% extends "user.html" %}
+{% block content %}
+<div><h2>Your current pantries</h2></div>
+
+<div>
+    
+    <form method="post" action="/users/{{userid}}/cookbooks/remove/{{curr_idx}}">
+    <table>
+        {% for location  in pantries_owned %}
+        <tr>{{location}}</tr>
+        {% endfor %}
+    </table>
+    </form>
+    
+</div>
+<p>
+
+{% endblock %}
+
