@@ -604,18 +604,19 @@ def pantry_ingredients_remove(userid,panid):
 def pantry_ingredients_add(userid,panid):
     print "OUTPUT ING\n"
     ingname=request.form['ing']; 
+    quantity=request.form['quantity'];
     ingid=ing_exists(ingname)
     if ingid>=0:
-	cmd = 'INSERT INTO pantriescontain (ingid) VALUES(:ingid)'
-	g.conn.execute(text(cmd), ingid=ingid);
+	cmd = 'INSERT INTO pantriescontain (panid, ingid,quantity) VALUES(:panid,:ingid,:quantity)'
+	g.conn.execute(text(cmd),panid=panid,ingid=ingid,quantity=quantity);
         return redirect('/users/'+str(userid)+'/pantries/view/' +str(panid))
 
     cmd='INSERT INTO ingredients (shortname) VALUES(:shortname)'
     g.conn.execute(text(cmd),shortname=ingname);
 
     ingid=ing_exists(ingname)
-    cmd='INSERT INTO pantriescontain (panid, ingid) VALUES(:panid, :ingid)'
-    g.conn.execute(text(cmd),panid=panid,ingid=ingid)
+    cmd='INSERT INTO pantriescontain (panid, ingid, quantity) VALUES(:panid, :ingid, :quantity)'
+    g.conn.execute(text(cmd),panid=panid,ingid=ingid, quantity=quantity)
 	
 
 	#cmd = 'DELETE FROM pantriescontain WHERE panid=:panid AND ingid=:ingid'
