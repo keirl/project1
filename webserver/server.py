@@ -467,18 +467,18 @@ def recipe_update_rating(userid,recid):
     except:
         return redirect('/')
     
-    return redirect('in_progress.html')
+    return render_template('/users/'+str(userid)+'/recipe/view/'+str(recid))
 
 @app.route('/users/<userid>/recipe/update_categories/<recid>')
 def recipe_update_categories(userid,recid):
     return redirect('in_progress.html')
     
 @app.route('/users/<userid>/recipe/new')
-def recipe_update_categories(userid,recid):
+def recipe_new(userid,recid):
     return redirect('in_progress.html')
     
 @app.route('/users/<userid>/recipe/new_add')
-def recipe_update_categories(userid,recid):
+def recipe_new_add(userid,recid):
     return redirect('in_progress.html')
 
 if __name__ == "__main__":
