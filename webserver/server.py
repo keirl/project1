@@ -578,6 +578,17 @@ def pantry_contain(userid, panid):
     context['pantries_contain'] = pantries_contain
     return render_template("pantries_contain.html",**context)
 
+@app.route('/users/<userid>/pantries/<panid>/remove/ingredients', methods=['POST'])
+def pantry_ingredients_remove(userid,panid):
+    print "OUTPUT ING\n"
+    for ingid in request.form:
+        print ingid
+        cmd = 'DELETE FROM pantriescontain WHERE panid=:panid AND ingid=:ingid'
+        ## Add integrity checking
+        g.conn.execute(text(cmd), ingid = int(ingid), panid=panid);
+    return redirect('/users/'+str(userid)+'/pantries/view/' +str(panid))
+
+
 @app.route('/users/<userid>/lists/view/')
 def list_view(userid):
     context={}

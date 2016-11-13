@@ -3,7 +3,7 @@
 <div><h2>Your pantry details</h2></div>
 
 <div>
-    
+    <form method="post" action="/users/{{userid}}/pantries/{{panid}}/remove/ingredients">
     <table>
 	<p>Pantry: {{location}}</p>
 	<tr>
@@ -15,13 +15,13 @@
         <tr>	
 		<td>{{shortname}}</td>
 		<td>{{quantity}}</td>	
-		<td>checkbox here</td>
-		
+		<td><input type="checkbox" name="{{ingid}}" value="True"></td>	
 	</tr>
 
         {% endfor %}
     </table>
-    
+    <p><input type="submit" value="Remove Ingredient"> <input type="reset"></p>
+    </form> 
 </div>
 
 
