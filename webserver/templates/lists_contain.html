@@ -1,0 +1,31 @@
+{% extends "user.html" %}
+{% block content %}
+<div><h2>Your pantry details</h2></div>
+
+<div>
+    <form method="post" action="/users/{{userid}}/lists/{{listid}}/remove/ingredients">
+    <table>
+	<p>Shopping List: {{name}}</p>
+	<tr>
+		<th>Ingredients</th>
+		<th>Quantity</th>
+		<th>Remove</th>
+	</tr>
+        {% for quantity, ingid, shortname in lists_contain %}
+        <tr>	
+		<td>{{shortname}}</td>
+		<td>{{quantity}}</td>	
+		<td><input type="checkbox" name="{{ingid}}" value="True"></td>	
+	</tr>
+
+        {% endfor %}
+    </table>
+    <p><input type="submit" value="Remove Ingredient"> <input type="reset"></p>
+    </form> 
+	<form method="post" action="/users/{{userid}}/lists/{{listid}}/add/ingredients">
+		<p>Ingredient: <input type="text" name="ing">	Quantity: <input type="text" name="quantity">	<input type="submit" value="Add Ingredient"></p>
+	</form> 
+</div>
+
+
+{% endblock %}

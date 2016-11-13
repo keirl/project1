@@ -576,7 +576,6 @@ def pantry_contain(userid, panid):
 		LEFT JOIN ingredients AS I ON PC.ingid=I.ingid \
 		WHERE P.userid=:userid and PC.panid=:panid'
     cursor = g.conn.execute(text(cmd),userid=userid,panid=panid);
-    record = cursor.fetchone()
     pantries_contain = []
     for record in cursor:
         pantries_contain.append((record['quantity'],record['ingid'],record['shortname']))
@@ -643,6 +642,31 @@ def lists_view(userid):
     
     context['lists_owned'] = lists_owned    
     return render_template("lists.html",**context)
+
+@app.route('/users/<userid>/lists/view/<listid>')
+def list_contain(userid, listid):
+    context={}
+   
+    cmd = 'SELECT L.name, LC.ingid, LC.quantity, I.ingid, I.shortname FROM shoppinglists as L \
+		LEFT JOIN shoplistcontain AS LC ON L.listid=LC.listid \
+		LEFT JOIN ingredients AS I ON LC.ingid=I.ingid \
+		WHERE L.userid=:userid and LC.listid=:listid'
+    cursor = g.conn.execute(text(cmd),userid=userid,listid=listid);
+    lists_contain = []
+    print "TESTING SPECIFIC LIST\n"
+    for record in cursor:
+	print str(record['quantity'])
+        lists_contain.append((record['quantity'],record['ingid'],record['shortname']))
+	
+    context['name']=record['name']
+    #context['url']=record['url']
+    cursor.close()
+   
+    context['listid'] = listid
+    context['userid'] = userid 
+    context['lists_contain'] = lists_contain
+    return render_template("lists_contain.html",**context)
+
 
 if __name__ == "__main__":
   import click
