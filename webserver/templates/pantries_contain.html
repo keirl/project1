@@ -1,0 +1,28 @@
+{% extends "user.html" %}
+{% block content %}
+<div><h2>Your pantry details</h2></div>
+
+<div>
+    
+    <table>
+	<p>Pantry: {{location}}</p>
+	<tr>
+		<th>Ingredients</th>
+		<th>Quantity</th>
+		<th>Remove</th>
+	</tr>
+        {% for quantity, ingid, shortname in pantries_contain %}
+        <tr>	
+		<td>{{shortname}}</td>
+		<td>{{quantity}}</td>	
+		<td>checkbox here</td>
+		
+	</tr>
+
+        {% endfor %}
+    </table>
+    
+</div>
+
+
+{% endblock %}

@@ -5,8 +5,14 @@
 <div>
     
     <table>
-        {% for location  in pantries_owned %}
-        <tr>{{location}}</tr>
+	<tr>
+		<th>Pantry Location</th>
+	</tr>
+        {% for location, panid  in pantries_owned %}
+        <tr>	
+		<td><a href="/users/{{userid}}/pantries/view/{{panid}}">{{location}}</a></td>
+	</tr>
+
         {% endfor %}
     </table>
     

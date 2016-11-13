@@ -542,12 +542,12 @@ def recipe_new_add(userid,recid):
 def pantry_view(userid):
     context={}
    
-    cmd = 'SELECT location FROM pantries LEFT JOIN users on users.userid=pantries.userid where users.userid=:userid;'
+    cmd = 'SELECT panid, location FROM pantries LEFT JOIN users on users.userid=pantries.userid where users.userid=:userid;'
     cursor = g.conn.execute(text(cmd),userid=userid);
     record = cursor.fetchone()
     pantries_owned = []
     for record in cursor:
-        pantries_owned.append(record['location'])
+        pantries_owned.append((record['location'],record['panid']))
     #context['location']=record['location']
     #context['url']=record['url']
     cursor.close()
@@ -555,6 +555,28 @@ def pantry_view(userid):
     context['pantries_owned'] = pantries_owned    
     return render_template("pantries.html",**context)
 
+@app.route('/users/<userid>/pantries/view/<panid>')
+def pantry_contain(userid, panid):
+    context={}
+   
+    cmd = 'SELECT P.location, PC.ingid, PC.quantity, I.ingid, I.shortname FROM pantries as P \
+		LEFT JOIN pantriescontain AS PC ON P.panid=PC.panid \
+		LEFT JOIN ingredients AS I ON PC.ingid=I.ingid \
+		WHERE P.userid=:userid and PC.panid=:panid'
+    cursor = g.conn.execute(text(cmd),userid=userid,panid=panid);
+    record = cursor.fetchone()
+    pantries_contain = []
+    for record in cursor:
+        pantries_contain.append((record['quantity'],record['ingid'],record['shortname']))
+	
+    context['location']=record['location']
+    #context['url']=record['url']
+    cursor.close()
+   
+    context['panid'] = panid
+    context['userid'] = userid 
+    context['pantries_contain'] = pantries_contain
+    return render_template("pantries_contain.html",**context)
 
 @app.route('/users/<userid>/lists/view/')
 def list_view(userid):
