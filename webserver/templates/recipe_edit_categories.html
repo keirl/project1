@@ -1,0 +1,30 @@
+{% extends "user.html" %}
+{% block content %}
+<div><h2>{{recipename}}</h2></div>
+
+<div>
+    <form method="post" action="/users/{{userid}}/recipe/update_categories/{{recid}}">
+    <table>
+        <tr>
+            <th>Category</th>
+        </tr>
+        {% for print_category, category, curr_bool in categories %}
+        <tr>   
+            <td><input type="checkbox" name={{category}} value={{category}} {% if curr_bool == "True" %}checked{% endif %}></td>
+            <td>{{print_category}}</td>
+            
+        </tr> 
+        {% endfor %}
+        {% for i in range(4) %}
+        <tr>   
+            <td></td>
+            <td><input type="text" name="___new_{{i}}"></td>
+        </tr>
+        {% endfor %}
+    </table>
+    <td><input type="submit" value="Update Categories"> <input type="reset"></td>
+    </form>
+</div>
+
+{% endblock %}
+

@@ -1,0 +1,48 @@
+{% extends "user.html" %}
+{% block content %}
+<div><h2>{{recipename}}</h2></div>
+<h3>By {{author}}</h3>
+
+
+
+<div>
+<form method="post" action="/users/{{userid}}/recipe/update_rating/{{recid}}">
+    <p> Average rating: {{average_rating}} | Your Rating:  <select name="rating">
+  {% if your_rating=='0' %}<option value="0" selected>Not rated</option>{% endif %}
+  <option value="1" {% if your_rating=='1' %}selected{% endif %}>1</option>
+  <option value="2" {% if your_rating=='2' %}selected{% endif %}>2</option>
+  <option value="3" {% if your_rating=='3' %}selected{% endif %}>3</option>
+  <option value="4" {% if your_rating=='4' %}selected{% endif %}>4</option>
+  <option value="5" {% if your_rating=='5' %}selected{% endif %}>5</option>
+</select>
+<input type="submit" value="Update Rating">
+</p>
+</form>
+</div>
+
+<div>
+<p>Recipe categories: {{categories_str}} | <a href="/users/{{userid}}/recipe/edit_categories/{{recid}}">Update categories</a></p>
+</div>
+
+<div>
+    <table>
+        <tr>
+            <th>Quantity</th>
+            <th>Ingredient</th>
+        </tr>
+        {% for quantity, optional, prep, shortname in ingredients %}
+        <tr>   
+            <td>{{quantity}}</td>
+            <td>{% if optional == 'True' %}(Optional) {% endif %}{{shortname}}, {{prep}}</td>
+        </tr> 
+        {% endfor %}
+    </table>
+</div>
+
+
+<p> {{directions}}
+
+<p><small><a href="{{url}}"> Original recipe </a></small></p>
+
+{% endblock %}
+

@@ -1,0 +1,15 @@
+{% extends "user.html" %}
+{% block content %}
+<div><h2>Create a new cookbook</h2></div>
+
+<div>
+    <form method="post" action="/users/{{userid}}/cookbook/add_new">
+    <p>Cookbook Name: <input type="text" name="name"> </p>
+    <p><input type="submit" value="Add Cookbook"></p>
+    </form>
+    
+</div>
+<p>
+
+{% endblock %}
+
