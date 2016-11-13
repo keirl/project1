@@ -499,6 +499,24 @@ def pantry_view(userid):
     context['pantries_owned'] = pantries_owned    
     return render_template("pantries.html",**context)
 
+
+@app.route('/users/<userid>/lists/view/')
+def list_view(userid):
+    context={}
+   
+    cmd = 'SELECT name FROM shoppinglists LEFT JOIN users on users.userid=shoppinglists.userid where users.userid=:userid;'
+    cursor = g.conn.execute(text(cmd),userid=userid);
+    record = cursor.fetchone()
+    lists_owned = []
+    for record in cursor:
+       lists_owned.append(record['name'])
+    #context['location']=record['location']
+    #context['url']=record['url']
+    cursor.close()
+    
+    context['lists_owned'] = lists_owned    
+    return render_template("lists.html",**context)
+
 if __name__ == "__main__":
   import click
 
