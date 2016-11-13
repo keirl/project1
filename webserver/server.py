@@ -653,9 +653,7 @@ def list_contain(userid, listid):
 		WHERE L.userid=:userid and LC.listid=:listid'
     cursor = g.conn.execute(text(cmd),userid=userid,listid=listid);
     lists_contain = []
-    print "TESTING SPECIFIC LIST\n"
     for record in cursor:
-	print str(record['quantity'])
         lists_contain.append((record['quantity'],record['ingid'],record['shortname']))
 	
     context['name']=record['name']
@@ -667,6 +665,36 @@ def list_contain(userid, listid):
     context['lists_contain'] = lists_contain
     return render_template("lists_contain.html",**context)
 
+@app.route('/users/<userid>/lists/<listid>/remove/ingredients', methods=['POST'])
+def list_ingredients_remove(userid,listid):
+    for ingid in request.form:
+        cmd = 'DELETE FROM shoplistcontain WHERE listid=:listid AND ingid=:ingid'
+        ## Add integrity checking
+        g.conn.execute(text(cmd), ingid = int(ingid), listid=listid);
+    return redirect('/users/'+str(userid)+'/lists/view/' +str(listid))
+
+@app.route('/users/<userid>/lists/<listid>/add/ingredients', methods=['POST'])
+def list_ingredients_add(userid,listid):
+    ingname=request.form['ing']; 
+    quantity=request.form['quantity'];
+    ingid=ing_exists(ingname)
+    if ingid>=0:
+	cmd = 'INSERT INTO shoplistcontain (listid, ingid,quantity) VALUES(:listid,:ingid,:quantity)'
+	g.conn.execute(text(cmd),listid=listid,ingid=ingid,quantity=quantity);
+        return redirect('/users/'+str(userid)+'/lists/view/' +str(listid))
+
+    cmd='INSERT INTO ingredients (shortname) VALUES(:shortname)'
+    g.conn.execute(text(cmd),shortname=ingname);
+
+    ingid=ing_exists(ingname)
+    cmd='INSERT INTO shoplistcontain (listid, ingid, quantity) VALUES(:listid, :ingid, :quantity)'
+    g.conn.execute(text(cmd),listid=listid,ingid=ingid, quantity=quantity)
+	
+
+	#cmd = 'DELETE FROM pantriescontain WHERE panid=:panid AND ingid=:ingid'
+        ## Add integrity checking
+        #g.conn.execute(text(cmd), ingid = int(ingid), panid=panid);
+    return redirect('/users/'+str(userid)+'/lists/view/' +str(listid))
 
 if __name__ == "__main__":
   import click
