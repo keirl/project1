@@ -1,0 +1,21 @@
+{% extends "user.html" %}
+{% block content %}
+<div><h2>All Recipes</h2></div>
+
+<div>
+    <table>
+        <tr>
+            <th>Recipe Name</th>
+        </tr>
+        {% for recid, recipename in recipes %}
+        <tr>   
+            <td><a href="/users/{{userid}}/recipe/view/{{recid}}">{{recipename}}</a></td>
+        </tr> 
+        {% endfor %}
+    </table>
+    <p> <a href="/users/{{userid}}/recipes/view/{{prev_idx}}">Prev</a> | <a href="/users/{{userid}}/recipes/view/{{next_idx}}">Next</a></p>
+</div>
+<p>
+
+{% endblock %}
+

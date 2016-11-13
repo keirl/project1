@@ -19,6 +19,7 @@ import os
 from sqlalchemy import *
 from sqlalchemy.pool import NullPool
 from flask import Flask, request, render_template, g, redirect, Response, url_for
+import string
 
 tmpl_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'templates')
 app = Flask(__name__, template_folder=tmpl_dir)
@@ -142,10 +143,12 @@ def index():
 #  g.conn.execute(text(cmd), name1 = name, name2 = name);
 #  return redirect('/')
 
-def validate_userid(userid):
+def valid_userid(userid):
     cmd = 'SELECT userid FROM users WHERE userid=:userid'
     cursor = g.conn.execute(text(cmd),userid=userid);
-    record = cursor.fetchone()
+    valid = cursor.rowcount
+    cursor.close()
+    return valid
     
 def average_rating(recid):
     try:
@@ -423,6 +426,9 @@ def recipes_view(userid,recidx=0):
 
 @app.route('/users/<userid>/recipe/view/<recid>')
 def recipe_view(userid,recid):
+    if not valid_userid(userid): 
+        return redirect('users/0')
+    
     context={}
    
     cmd = 'SELECT recipename, directions, author, url FROM recipes WHERE recid=:recid'
@@ -452,33 +458,83 @@ def recipe_view(userid,recid):
     
     return render_template("recipe.html",**context)
     
-@app.route('/users/<userid>/recipe/update_rating/<recid>')
+@app.route('/users/<userid>/recipe/update_rating/<recid>', methods=['POST'])
 def recipe_update_rating(userid,recid):
     rating = request.form['rating']
+    print str(int(rating))
     try:
         cmd = 'INSERT INTO reciperatings (recid, userid, rating) VALUES (:recid, :userid, :rating)'
         g.conn.execute(text(cmd),recid=recid, userid=userid, rating=rating);
-    except IntegrityError:
-        try:
-            cmd = 'UPDATE reciperatings SET rating:rating WHERE recid=:recid AND userid=:userid'
-            g.conn.execute(text(cmd),recid=recid, userid=userid, rating=rating);
-        except:
-            return redirect('/')
-    except:
-        return redirect('/')
+    except :
+        cmd = 'UPDATE reciperatings SET rating=:rating WHERE recid=:recid AND userid=:userid'
+        g.conn.execute(text(cmd),recid=recid, userid=userid, rating=rating);
+        
     
-    return redirect('in_progress.html')
+    return redirect('/users/'+str(userid)+'/recipe/view/'+str(recid))
 
-@app.route('/users/<userid>/recipe/update_categories/<recid>')
+@app.route('/users/<userid>/recipe/edit_categories/<recid>')
+def recipe_edit_categories(userid,recid):
+    context={}
+    
+    cmd = 'SELECT name FROM recipecategories WHERE recid=:recid'    
+    cursor = g.conn.execute(text(cmd),recid=recid);
+    curr_categories = []
+    for record in cursor:
+        curr_categories.append(record['name'])
+    cursor.close()
+    
+    cmd = 'SELECT name FROM categories'    
+    cursor = g.conn.execute(text(cmd));
+    categories = []
+    for record in cursor:
+        if record['name'] in curr_categories:
+            categories.append((record['name'],record['name'].replace(' ','_'),'True'))
+        else:
+            categories.append((record['name'],record['name'].replace(' ','_'),'False'))
+    cursor.close()
+    context['categories'] = categories
+        
+    cmd = 'SELECT recipename FROM recipes WHERE recid=:recid'
+    cursor = g.conn.execute(text(cmd),recid=recid);
+    record = cursor.fetchone()
+    context['recipename']=record['recipename']
+    
+    cursor.close()
+    
+
+    context['recid']=recid
+    context['userid']=userid
+    
+    return render_template('recipe_edit_categories.html',**context)
+
+@app.route('/users/<userid>/recipe/update_categories/<recid>', methods=['POST'])
 def recipe_update_categories(userid,recid):
-    return redirect('in_progress.html')
+    print request.form
+    cmd = 'DELETE FROM recipecategories WHERE recid=:recid'
+    g.conn.execute(text(cmd),recid=recid);
+    for i,category in request.form.items():
+        print i, '    ', category
+        category = category.replace('_',' ')
+        if i[0:6]=='___new':
+            if len(category)>0:
+                print 'New Category:',category
+                cmd = 'INSERT INTO categories (name) VALUES (:new_category)'
+                g.conn.execute(text(cmd),new_category=category);
+                cmd = 'INSERT INTO recipecategories (recid, name) VALUES (:recid,:new_category)'
+                g.conn.execute(text(cmd),recid=recid,new_category=category);
+        else:
+            cmd = 'INSERT INTO recipecategories (recid, name) VALUES (:recid,:category)'
+            g.conn.execute(text(cmd),recid=recid,category=category);
+        
+    
+    return redirect('/users/'+str(userid)+'/recipe/view/'+str(recid))
     
 @app.route('/users/<userid>/recipe/new')
-def recipe_update_categories2(userid,recid):
+def recipe_new(userid,recid):
     return redirect('in_progress.html')
     
-@app.route('/users/<userid>/recipe/new_add')
-def recipe_update_categories3(userid,recid):
+@app.route('/users/<userid>/recipe/new_add', methods=['POST'])
+def recipe_new_add(userid,recid):
     return redirect('in_progress.html')
 
 
