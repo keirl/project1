@@ -142,6 +142,45 @@ def index():
 #  g.conn.execute(text(cmd), name1 = name, name2 = name);
 #  return redirect('/')
 
+def validate_userid(userid):
+    cmd = 'SELECT userid FROM users WHERE userid=:userid'
+    cursor = g.conn.execute(text(cmd),userid=userid);
+    record = cursor.fetchone()
+    
+def average_rating(recid):
+    try:
+        cmd = 'SELECT AVG(rating) AS average_rating FROM reciperatings WHERE recid=:recid'
+        cursor = g.conn.execute(text(cmd),recid=recid);
+        record = cursor.fetchone()
+        return_val = str(round(record['average_rating'],1))
+        cursor.close()
+        return return_val
+    except:
+        cursor.close()
+        return None
+    
+
+def user_rating(recid, userid):
+    try:
+        cmd = 'SELECT rating FROM reciperatings WHERE recid=:recid AND userid=:userid'
+        cursor = g.conn.execute(text(cmd),recid=recid, userid=userid);
+        record = cursor.fetchone()
+        return_val = str(record['rating'])
+        cursor.close()
+        return return_val
+    except:
+        cursor.close()
+        return '0'
+        
+def categories_str(recid):
+    cmd = 'SELECT name FROM recipecategories WHERE recid=:recid'
+    cursor = g.conn.execute(text(cmd),recid=recid);
+    categories = []
+    for record in cursor:
+        categories.append(record['name'])
+    cursor.close
+    return ', '.join(categories)
+    
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -380,6 +419,67 @@ def recipes_view(userid,recidx=0):
         
     return render_template("recipes.html",**context)
 
+
+
+@app.route('/users/<userid>/recipe/view/<recid>')
+def recipe_view(userid,recid):
+    context={}
+   
+    cmd = 'SELECT recipename, directions, author, url FROM recipes WHERE recid=:recid'
+    cursor = g.conn.execute(text(cmd),recid=recid);
+    record = cursor.fetchone()
+    context['recipename']=record['recipename']
+    context['directions']=record['directions']
+    context['author']=record['author']
+    context['url']=record['url']
+    cursor.close()
+    
+    cmd = 'SELECT rc.quantity AS quantity, rc.optional AS optional, rc.prep AS prep, i.shortname AS shortname \
+        FROM ingredients AS i, recipescontain AS rc WHERE i.ingid=rc.ingid AND rc.recid=:recid'   
+    cursor = g.conn.execute(text(cmd),recid=recid);
+    ingredients = []
+    for record in cursor:
+        ingredients.append((record['quantity'],str(record['optional']),record['prep'],record['shortname']))
+    cursor.close()
+
+    context['average_rating'] = average_rating(recid)
+    context['your_rating']=user_rating(recid,userid)
+    context['categories_str']=categories_str(recid)
+    
+    context['ingredients'] = ingredients
+    context['recid'] = recid
+    context['userid']=str(userid)
+    
+    return render_template("recipe.html",**context)
+    
+@app.route('/users/<userid>/recipe/update_rating/<recid>')
+def recipe_update_rating(userid,recid):
+    rating = request.form['rating']
+    try:
+        cmd = 'INSERT INTO reciperatings (recid, userid, rating) VALUES (:recid, :userid, :rating)'
+        g.conn.execute(text(cmd),recid=recid, userid=userid, rating=rating);
+    except IntegrityError:
+        try:
+            cmd = 'UPDATE reciperatings SET rating:rating WHERE recid=:recid AND userid=:userid'
+            g.conn.execute(text(cmd),recid=recid, userid=userid, rating=rating);
+        except:
+            return redirect('/')
+    except:
+        return redirect('/')
+    
+    return redirect('in_progress.html')
+
+@app.route('/users/<userid>/recipe/update_categories/<recid>')
+def recipe_update_categories(userid,recid):
+    return redirect('in_progress.html')
+    
+@app.route('/users/<userid>/recipe/new')
+def recipe_update_categories(userid,recid):
+    return redirect('in_progress.html')
+    
+@app.route('/users/<userid>/recipe/new_add')
+def recipe_update_categories(userid,recid):
+    return redirect('in_progress.html')
 
 if __name__ == "__main__":
   import click
