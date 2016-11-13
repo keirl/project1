@@ -5,13 +5,20 @@
 <div>
     
     <table>
-        {% for location  in pantries_owned %}
-        <tr>{{location}}</tr>
-        {% endfor %}
+	<tr>
+		<th>Shopping List Name</th>
+		<th>Active</th>
+	</tr>
+        {% for listid, name, active  in lists_owned %}
+ 
+	<tr>
+                <td><a href="/users/{{userid}}/lists/view/{{listid}}">{{name}}</a></td>
+		<td>{{active}}</td>
+        </tr>       
+
+	{% endfor %}
     </table>
     
 </div>
-<p>
 
 {% endblock %}
-

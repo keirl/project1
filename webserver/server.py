@@ -625,15 +625,18 @@ def pantry_ingredients_add(userid,panid):
     return redirect('/users/'+str(userid)+'/pantries/view/' +str(panid))
 
 @app.route('/users/<userid>/lists/view/')
-def list_view(userid):
+def lists_view(userid):
     context={}
    
-    cmd = 'SELECT name FROM shoppinglists LEFT JOIN users on users.userid=shoppinglists.userid where users.userid=:userid;'
+    cmd = 'SELECT listid, name, active FROM shoppinglists LEFT JOIN users on users.userid=shoppinglists.userid where users.userid=:userid'
     cursor = g.conn.execute(text(cmd),userid=userid);
-    record = cursor.fetchone()
+    print "RECORD OUTPUT FOR LIST VIEW\n"
     lists_owned = []
     for record in cursor:
-       lists_owned.append(record['name'])
+	print record['listid']
+	print record['name']
+	print record['active']
+        lists_owned.append((record['listid'],record['name'],record['active']))
     #context['location']=record['location']
     #context['url']=record['url']
     cursor.close()
