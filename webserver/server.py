@@ -474,11 +474,11 @@ def recipe_update_categories(userid,recid):
     return redirect('in_progress.html')
     
 @app.route('/users/<userid>/recipe/new')
-def recipe_update_categories(userid,recid):
+def recipe_update_categories2(userid,recid):
     return redirect('in_progress.html')
     
 @app.route('/users/<userid>/recipe/new_add')
-def recipe_update_categories(userid,recid):
+def recipe_update_categories3(userid,recid):
     return redirect('in_progress.html')
 
 if __name__ == "__main__":
