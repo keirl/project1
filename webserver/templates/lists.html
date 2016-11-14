@@ -1,0 +1,24 @@
+{% extends "user.html" %}
+{% block content %}
+<div><h2>Your current shopping lists</h2></div>
+
+<div>
+    
+    <table>
+	<tr>
+		<th>Shopping List Name</th>
+		<th>Active</th>
+	</tr>
+        {% for listid, name, active  in lists_owned %}
+ 
+	<tr>
+                <td><a href="/users/{{userid}}/lists/view/{{listid}}">{{name}}</a></td>
+		<td>{{active}}</td>
+        </tr>       
+
+	{% endfor %}
+    </table>
+    
+</div>
+
+{% endblock %}

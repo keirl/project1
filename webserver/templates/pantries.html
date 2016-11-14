@@ -1,0 +1,23 @@
+{% extends "user.html" %}
+{% block content %}
+<div><h2>Your current pantries</h2></div>
+
+<div>
+    
+    <table>
+	<tr>
+		<th>Pantry Location</th>
+	</tr>
+        {% for location, panid  in pantries_owned %}
+        <tr>	
+		<td><a href="/users/{{userid}}/pantries/view/{{panid}}">{{location}}</a></td>
+	</tr>
+
+        {% endfor %}
+    </table>
+    
+</div>
+<p>
+
+{% endblock %}
+

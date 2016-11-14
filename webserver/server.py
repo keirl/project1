@@ -143,6 +143,18 @@ def index():
 #  g.conn.execute(text(cmd), name1 = name, name2 = name);
 #  return redirect('/')
 
+def ing_exists(ingname):
+    cmd = 'SELECT ingid, shortname FROM ingredients WHERE shortname=:shortname'
+    cursor = g.conn.execute(text(cmd),shortname=ingname);
+    valid = cursor.rowcount
+    record = cursor.fetchone()
+    cursor.close()
+	
+    if valid>0:
+	return record['ingid']
+   
+    return -1
+
 def valid_userid(userid):
     cmd = 'SELECT userid FROM users WHERE userid=:userid'
     cursor = g.conn.execute(text(cmd),userid=userid);
@@ -658,6 +670,153 @@ def recipe_new_add(userid):
     cursor.close()
     
     return render_template('in_progress.html')
+
+
+@app.route('/users/<userid>/pantries/view/')
+def pantry_view(userid):
+    context={}
+   
+    cmd = 'SELECT panid, location FROM pantries LEFT JOIN users on users.userid=pantries.userid where users.userid=:userid;'
+    cursor = g.conn.execute(text(cmd),userid=userid);
+    record = cursor.fetchone()
+    pantries_owned = []
+    for record in cursor:
+        pantries_owned.append((record['location'],record['panid']))
+    #context['location']=record['location']
+    #context['url']=record['url']
+    cursor.close()
+    
+    context['pantries_owned'] = pantries_owned    
+    return render_template("pantries.html",**context)
+
+@app.route('/users/<userid>/pantries/view/<panid>')
+def pantry_contain(userid, panid):
+    context={}
+   
+    cmd = 'SELECT P.location, PC.ingid, PC.quantity, I.ingid, I.shortname FROM pantries as P \
+		LEFT JOIN pantriescontain AS PC ON P.panid=PC.panid \
+		LEFT JOIN ingredients AS I ON PC.ingid=I.ingid \
+		WHERE P.userid=:userid and PC.panid=:panid'
+    cursor = g.conn.execute(text(cmd),userid=userid,panid=panid);
+    pantries_contain = []
+    for record in cursor:
+        pantries_contain.append((record['quantity'],record['ingid'],record['shortname']))
+	
+    context['location']=record['location']
+    #context['url']=record['url']
+    cursor.close()
+   
+    context['panid'] = panid
+    context['userid'] = userid 
+    context['pantries_contain'] = pantries_contain
+    return render_template("pantries_contain.html",**context)
+
+@app.route('/users/<userid>/pantries/<panid>/remove/ingredients', methods=['POST'])
+def pantry_ingredients_remove(userid,panid):
+    print "OUTPUT ING\n"
+    for ingid in request.form:
+        print ingid
+        cmd = 'DELETE FROM pantriescontain WHERE panid=:panid AND ingid=:ingid'
+        ## Add integrity checking
+        g.conn.execute(text(cmd), ingid = int(ingid), panid=panid);
+    return redirect('/users/'+str(userid)+'/pantries/view/' +str(panid))
+
+@app.route('/users/<userid>/pantries/<panid>/add/ingredients', methods=['POST'])
+def pantry_ingredients_add(userid,panid):
+    print "OUTPUT ING\n"
+    ingname=request.form['ing']; 
+    quantity=request.form['quantity'];
+    ingid=ing_exists(ingname)
+    if ingid>=0:
+	cmd = 'INSERT INTO pantriescontain (panid, ingid,quantity) VALUES(:panid,:ingid,:quantity)'
+	g.conn.execute(text(cmd),panid=panid,ingid=ingid,quantity=quantity);
+        return redirect('/users/'+str(userid)+'/pantries/view/' +str(panid))
+
+    cmd='INSERT INTO ingredients (shortname) VALUES(:shortname)'
+    g.conn.execute(text(cmd),shortname=ingname);
+
+    ingid=ing_exists(ingname)
+    cmd='INSERT INTO pantriescontain (panid, ingid, quantity) VALUES(:panid, :ingid, :quantity)'
+    g.conn.execute(text(cmd),panid=panid,ingid=ingid, quantity=quantity)
+	
+
+	#cmd = 'DELETE FROM pantriescontain WHERE panid=:panid AND ingid=:ingid'
+        ## Add integrity checking
+        #g.conn.execute(text(cmd), ingid = int(ingid), panid=panid);
+    return redirect('/users/'+str(userid)+'/pantries/view/' +str(panid))
+
+@app.route('/users/<userid>/lists/view/')
+def lists_view(userid):
+    context={}
+   
+    cmd = 'SELECT listid, name, active FROM shoppinglists LEFT JOIN users on users.userid=shoppinglists.userid where users.userid=:userid'
+    cursor = g.conn.execute(text(cmd),userid=userid);
+    print "RECORD OUTPUT FOR LIST VIEW\n"
+    lists_owned = []
+    for record in cursor:
+	print record['listid']
+	print record['name']
+	print record['active']
+        lists_owned.append((record['listid'],record['name'],record['active']))
+    #context['location']=record['location']
+    #context['url']=record['url']
+    cursor.close()
+    
+    context['lists_owned'] = lists_owned    
+    return render_template("lists.html",**context)
+
+@app.route('/users/<userid>/lists/view/<listid>')
+def list_contain(userid, listid):
+    context={}
+   
+    cmd = 'SELECT L.name, LC.ingid, LC.quantity, I.ingid, I.shortname FROM shoppinglists as L \
+		LEFT JOIN shoplistcontain AS LC ON L.listid=LC.listid \
+		LEFT JOIN ingredients AS I ON LC.ingid=I.ingid \
+		WHERE L.userid=:userid and LC.listid=:listid'
+    cursor = g.conn.execute(text(cmd),userid=userid,listid=listid);
+    lists_contain = []
+    for record in cursor:
+        lists_contain.append((record['quantity'],record['ingid'],record['shortname']))
+	
+    context['name']=record['name']
+    #context['url']=record['url']
+    cursor.close()
+   
+    context['listid'] = listid
+    context['userid'] = userid 
+    context['lists_contain'] = lists_contain
+    return render_template("lists_contain.html",**context)
+
+@app.route('/users/<userid>/lists/<listid>/remove/ingredients', methods=['POST'])
+def list_ingredients_remove(userid,listid):
+    for ingid in request.form:
+        cmd = 'DELETE FROM shoplistcontain WHERE listid=:listid AND ingid=:ingid'
+        ## Add integrity checking
+        g.conn.execute(text(cmd), ingid = int(ingid), listid=listid);
+    return redirect('/users/'+str(userid)+'/lists/view/' +str(listid))
+
+@app.route('/users/<userid>/lists/<listid>/add/ingredients', methods=['POST'])
+def list_ingredients_add(userid,listid):
+    ingname=request.form['ing']; 
+    quantity=request.form['quantity'];
+    ingid=ing_exists(ingname)
+    if ingid>=0:
+	cmd = 'INSERT INTO shoplistcontain (listid, ingid,quantity) VALUES(:listid,:ingid,:quantity)'
+	g.conn.execute(text(cmd),listid=listid,ingid=ingid,quantity=quantity);
+        return redirect('/users/'+str(userid)+'/lists/view/' +str(listid))
+
+    cmd='INSERT INTO ingredients (shortname) VALUES(:shortname)'
+    g.conn.execute(text(cmd),shortname=ingname);
+
+    ingid=ing_exists(ingname)
+    cmd='INSERT INTO shoplistcontain (listid, ingid, quantity) VALUES(:listid, :ingid, :quantity)'
+    g.conn.execute(text(cmd),listid=listid,ingid=ingid, quantity=quantity)
+	
+
+	#cmd = 'DELETE FROM pantriescontain WHERE panid=:panid AND ingid=:ingid'
+        ## Add integrity checking
+        #g.conn.execute(text(cmd), ingid = int(ingid), panid=panid);
+    return redirect('/users/'+str(userid)+'/lists/view/' +str(listid))
 
 if __name__ == "__main__":
   import click
