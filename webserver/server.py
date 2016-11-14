@@ -645,6 +645,19 @@ def recipe_new_add(userid):
     
            
     return redirect('/users/'+str(userid)+'/recipe/view/'+str(recid))
+    
+@app.route('/users/<userid>/dinner')
+def recipe_new_add(userid):
+    if not valid_userid(userid): 
+        return redirect('users/0')
+    
+    cmd = 'SELECT username FROM shoplistcontain WHERE userid=:userid'
+    cursor = g.conn.execute(text(cmd),userid=str(userid));
+    temp = cursor.fetchone()
+    author = temp['username']
+    cursor.close()
+    
+    return render_template('in_progress.html')
 
 if __name__ == "__main__":
   import click
