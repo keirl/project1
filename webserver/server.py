@@ -216,11 +216,14 @@ def login():
     
 @app.route('/users/<userid>')
 def user(userid):
+    
     userid = int(userid)
     print type(userid)
     if userid == 0:
         return render_template("user_new.html")
     else:
+        if not valid_userid(userid): 
+            return redirect('users/0')
         context = dict(userid = userid)
         context['username'] = 'dude'
         return render_template('user.html',**context)
@@ -246,6 +249,8 @@ def user_add():
 @app.route('/users/<userid>/cookbooks/view', methods=['GET'])
 @app.route('/users/<userid>/cookbooks/view/<cbidx>') 
 def cookbooks_view(userid,cbidx=None):
+    if not valid_userid(userid): 
+        return redirect('users/0')
      # This is to see the list of cookbooks
     context = {}
     CBIDX_INCR = 10                   
@@ -308,6 +313,8 @@ def cookbooks_remove(userid,curr_idx=0):
 @app.route('/users/<userid>/cookbook/view/<cbid>')
 @app.route('/users/<userid>/cookbook/view/<cbid>/<recidx>') 
 def cookbook_view(userid,cbid,recidx=0):
+    if not valid_userid(userid): 
+        return redirect('users/0')
     RECIDX_INCR = 10
     
     # Check recidx
@@ -387,6 +394,8 @@ def cookbook_remove(userid,cbid,curr_idx=0):
 
 @app.route('/users/<userid>/cookbook/new')
 def cookbook_new(userid):
+    if not valid_userid(userid): 
+        return redirect('users/0')
     context = {}
     context['userid']=userid
     return render_template('cookbook_new.html',**context) 
@@ -404,6 +413,8 @@ def cookbook_add_new(userid):
 @app.route('/users/<userid>/recipes/view')
 @app.route('/users/<userid>/recipes/view/<recidx>')
 def recipes_view(userid,recidx=0):
+    if not valid_userid(userid): 
+        return redirect('users/0')
 
     RECIDX_INCR = 20
     
@@ -472,6 +483,8 @@ def recipe_view(userid,recid):
     
 @app.route('/users/<userid>/recipe/update_rating/<recid>', methods=['POST'])
 def recipe_update_rating(userid,recid):
+    if not valid_userid(userid): 
+        return redirect('users/0')
     rating = request.form['rating']
     print str(int(rating))
     try:
@@ -486,6 +499,8 @@ def recipe_update_rating(userid,recid):
 
 @app.route('/users/<userid>/recipe/edit_categories/<recid>')
 def recipe_edit_categories(userid,recid):
+    if not valid_userid(userid): 
+        return redirect('users/0')
     context={}
     
     cmd = 'SELECT name FROM recipecategories WHERE recid=:recid'    
@@ -500,9 +515,10 @@ def recipe_edit_categories(userid,recid):
     categories = []
     for record in cursor:
         if record['name'] in curr_categories:
-            categories.append((record['name'],record['name'].replace(' ','_'),'True'))
+            #categories.append((record['name'],record['name'].replace(' ','_'),'True'))
+            categories.append((record['name'],'True'))
         else:
-            categories.append((record['name'],record['name'].replace(' ','_'),'False'))
+            categories.append((record['name'],'False'))
     cursor.close()
     context['categories'] = categories
         
@@ -526,7 +542,7 @@ def recipe_update_categories(userid,recid):
     g.conn.execute(text(cmd),recid=recid);
     for i,category in request.form.items():
         print i, '    ', category
-        category = category.replace('_',' ')
+        #category = category.replace('_',' ')
         if i[0:6]=='___new':
             if len(category)>0:
                 print 'New Category:',category
@@ -542,12 +558,105 @@ def recipe_update_categories(userid,recid):
     return redirect('/users/'+str(userid)+'/recipe/view/'+str(recid))
     
 @app.route('/users/<userid>/recipe/new')
-def recipe_new(userid,recid):
-    return redirect('in_progress.html')
+def recipe_new(userid):
+    if not valid_userid(userid): 
+        return redirect('users/0')
+    context={}
+    cmd = 'SELECT ingid, shortname FROM ingredients ORDER BY shortname'   
+    cursor = g.conn.execute(text(cmd));
+    ingredients=[]
+    for record in cursor:
+        ingredients.append((record['ingid'],record['shortname']))
+    cursor.close()
+    context['ingredients']=ingredients
+    context['num_ingred']=len(ingredients)
+    
+    cmd = 'SELECT name FROM categories'    
+    cursor = g.conn.execute(text(cmd));
+    categories = []
+    for record in cursor:
+        categories.append(record['name'])
+    cursor.close()
+    context['categories'] = categories
+    context['userid'] = userid
+    
+    return render_template('recipe_new.html',**context)
     
 @app.route('/users/<userid>/recipe/new_add', methods=['POST'])
-def recipe_new_add(userid,recid):
-    return redirect('in_progress.html')
+def recipe_new_add(userid):
+    if not valid_userid(userid): 
+        return redirect('users/0')
+    
+    print request.form
+    ing_idx = []
+    new_idx = []
+    for i, v in request.form.items():
+        if i[0:5]=='ing__':
+            if v !='0':
+                idx = i[5:]
+                print 'existing', idx 
+                ing_idx.append(int(idx))
+        elif i[0:5]=='new__':
+            if len(v)>0:
+                idx = i[5:]
+                print 'new', idx 
+                new_idx.append(int(idx))
+    
+    recipename = request.form['recipe']
+    directions = request.form['directions']
+    url = request.form['directions']
+    
+    cmd = 'SELECT username FROM users WHERE userid=:userid'
+    cursor = g.conn.execute(text(cmd),userid=str(userid));
+    temp = cursor.fetchone()
+    author = temp['username']
+    cursor.close()
+    
+    cmd = 'INSERT INTO recipes (recipename,directions,author,url) VALUES (:recipename,:directions,:author,:url) RETURNING recid'
+    cursor = g.conn.execute(text(cmd),recipename=recipename,directions=directions,author=author,url=url);
+    temp = cursor.fetchone()
+    recid = temp['recid']
+    cursor.close()
+    
+    for idx in new_idx:
+        ingredient = request.form['new__'+str(idx)]
+        ingredient = ingredient.lower()
+        
+        print ingredient
+    
+        cmd = 'INSERT INTO ingredients (shortname) VALUES (:ingredient) RETURNING ingid'
+        cursor = g.conn.execute(text(cmd),ingredient=ingredient);
+        temp = cursor.fetchone()
+        ingid = temp['ingid']
+        cursor.close()
+        
+        quantity = request.form['quan_'+str(idx)]
+        try:
+            request.form['opt__'+str(idx)]
+            optional = '1'
+        except:
+            optional = '0'
+        prep = request.form['prep_'+str(idx)]
+        
+        cmd = 'INSERT INTO recipescontain (recid, quantity, ingid, optional, prep) VALUES (:recid, :quantity, :ingid, :optional, :prep)'
+        g.conn.execute(text(cmd),recid=recid, quantity=quantity, ingid=ingid, optional=optional, prep=prep);
+    
+    for idx in ing_idx:
+        ingid = request.form['ing__'+str(idx)]
+        print ingid
+        quantity = request.form['quan_'+str(idx)]
+        try:
+            request.form['opt__'+str(idx)]
+            optional = '1'
+        except:
+            optional = '0'
+        prep = request.form['prep_'+str(idx)]
+    
+        cmd = 'INSERT INTO recipescontain (recid, quantity, ingid, optional, prep) VALUES (:recid, :quantity, :ingid, :optional, :prep)'
+        g.conn.execute(text(cmd),recid=recid, quantity=quantity, ingid=ingid, optional=optional, prep=prep);
+    
+           
+    return redirect('/users/'+str(userid)+'/recipe/view/'+str(recid))
 
 
 @app.route('/users/<userid>/pantries/view/')

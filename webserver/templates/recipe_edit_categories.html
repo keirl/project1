@@ -8,10 +8,10 @@
         <tr>
             <th>Category</th>
         </tr>
-        {% for print_category, category, curr_bool in categories %}
+        {% for category, curr_bool in categories %}
         <tr>   
-            <td><input type="checkbox" name={{category}} value={{category}} {% if curr_bool == "True" %}checked{% endif %}></td>
-            <td>{{print_category}}</td>
+            <td><input type="checkbox" name="{{category}}" value="{{category}}" {% if curr_bool == "True" %}checked{% endif %}></td>
+            <td>{{category}}</td>
             
         </tr> 
         {% endfor %}

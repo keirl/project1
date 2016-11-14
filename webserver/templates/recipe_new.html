@@ -1,0 +1,57 @@
+{% extends "user.html" %}
+{% block content %}
+<div><h2>Add a recipe</h2></div>
+
+<div>
+    <form method="post" action="/users/{{userid}}/recipe/new_add">
+    <p>Recipe name:<input type="text" name="recipe"></p>
+    <p></p>
+    <table>
+        <tr>
+            <th>Quantity (e.g. 1/4 teaspoon)</th>
+            <th>Ingredients</th>
+            <th>Preparation (e.g. minced)</th>
+            <th>Optional?</th>
+        </tr>
+        {% for i in range(15) %}
+        <tr>   
+            <td><input type="text" name="quan_{{i}}"></td>
+            <td><select name="ing__{{i}}"> <option value="0"></option> 
+                {% for ingid,shortname in ingredients %} <option value="{{ingid}}">{{shortname}}</option> {% endfor %}      </td>
+            <td><input type="text" name="prep_{{i}}"></td>
+            <td><input type="checkbox" name="opt__{{i}}" value="1" {% if curr_bool == "True" %}checked{% endif %}></td>
+        </tr> 
+        {% endfor %}
+        {% for i in range(15,20) %}
+        <tr>   
+            <td><input type="text" name="quan_{{i}}"></td>
+            <td><input type="text" name="new__{{i}}"></td></td>
+            <td><input type="text" name="prep_{{i}}"></td>
+            <td><input type="checkbox" name="opt__{{i}}" value="1" {% if curr_bool == "True" %}checked{% endif %}></td>
+        </tr>
+        {% endfor %}
+    </table>
+    <p>Directions</p>
+    <textarea rows="10" cols="120" name="directions"></textarea>
+    {#
+    <p>Categories</p>
+    <table>
+        <tr>
+            <th></th>
+            <th>Categories</th>
+        </tr>
+        {% for category in categories %}
+        <tr>
+            <td><input type="checkbox" name="{{category}}" value="{{category}}" {% if curr_bool == "True" %}checked{% endif %}></td>
+            <td>{{category}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    #}
+    <p>URL:<input type="text" name="url"></p>
+    <p><input type="submit" value="Create New Recipe"> <input type="reset"></p>
+    </form>
+</div>
+
+{% endblock %}
+
