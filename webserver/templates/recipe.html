@@ -33,7 +33,7 @@
         {% for quantity, optional, prep, shortname in ingredients %}
         <tr>   
             <td>{{quantity}}</td>
-            <td>{% if optional == 'True' %}(Optional) {% endif %}{{shortname}}, {{prep}}</td>
+            <td>{% if optional == 'True' %}(Optional) {% endif %}{{shortname}}{% if prep!="" %}, {{prep}}{% endif %}</td>
         </tr> 
         {% endfor %}
     </table>
