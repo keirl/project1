@@ -1,0 +1,14 @@
+{% extends "user.html" %}
+{% block content %}
+<div><h2>Create a new pantry</h2></div>
+
+<div>
+    <form method="post" action="/users/{{userid}}/pantry/add_new">
+    <p>Pantry Name: <input type="text" name="name"> </p>
+    <p><input type="submit" value="Add Pantry"></p>
+    </form>
+    
+</div>
+
+{% endblock %}
+

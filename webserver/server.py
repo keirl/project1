@@ -143,6 +143,22 @@ def index():
 #  g.conn.execute(text(cmd), name1 = name, name2 = name);
 #  return redirect('/')
 
+def getNameOf(id,pantryOrList):
+    if pantryOrList==0:
+	cmd = 'SELECT location FROM pantries WHERE panid=:id'
+    else:
+	cmd = 'SELECT name FROM shoppinglists WHERE listid=:id'
+
+    cursor = g.conn.execute(text(cmd),id=id);
+    record = cursor.fetchone()
+    cursor.close()
+	
+    if pantryOrList==0:
+	return record['location']
+
+    return record['name']
+
+
 def ing_exists(ingname):
     cmd = 'SELECT ingid, shortname FROM ingredients WHERE shortname=:shortname'
     cursor = g.conn.execute(text(cmd),shortname=ingname);
@@ -730,7 +746,9 @@ def pantry_view(userid):
 @app.route('/users/<userid>/pantries/view/<panid>')
 def pantry_contain(userid, panid):
     context={}
-   
+  
+    context['location'] = getNameOf(panid,0)
+ 
     cmd = 'SELECT P.location, PC.ingid, PC.quantity, I.ingid, I.shortname FROM pantries as P \
 		LEFT JOIN pantriescontain AS PC ON P.panid=PC.panid \
 		LEFT JOIN ingredients AS I ON PC.ingid=I.ingid \
@@ -739,11 +757,10 @@ def pantry_contain(userid, panid):
     pantries_contain = []
     for record in cursor:
         pantries_contain.append((record['quantity'],record['ingid'],record['shortname']))
-	
-    context['location']=record['location']
+
     #context['url']=record['url']
     cursor.close()
-   
+ 
     context['panid'] = panid
     context['userid'] = userid 
     context['pantries_contain'] = pantries_contain
@@ -783,6 +800,24 @@ def pantry_ingredients_add(userid,panid):
         #g.conn.execute(text(cmd), ingid = int(ingid), panid=panid);
     return redirect('/users/'+str(userid)+'/pantries/view/' +str(panid))
 
+@app.route('/users/<userid>/pantry/new')
+def pantry_new(userid):
+    if not valid_userid(userid): 
+        return redirect('users/0')
+    context = {}
+    context['userid']=userid
+    return render_template('pantry_new.html',**context) 
+
+@app.route('/users/<userid>/pantry/add_new', methods=['POST'])
+def pantry_add_new(userid):
+    new_pantry = request.form['name']
+    print new_pantry
+    cmd = 'INSERT INTO pantries (location, userid) VALUES (:new_pantry,:userid) RETURNING panid'
+    cursor = g.conn.execute(text(cmd), new_pantry=new_pantry, userid=userid);
+    temp=cursor.fetchone()
+    panid = temp['panid']
+    return redirect('/users/'+str(userid)+'/pantries/view/'+str(panid))
+
 @app.route('/users/<userid>/lists/view/')
 def lists_view(userid):
     context={}
@@ -808,6 +843,7 @@ def lists_view(userid):
 def list_contain(userid, listid):
     context={}
    
+    context['name'] = getNameOf(listid,1)
     cmd = 'SELECT L.name, LC.ingid, LC.quantity, I.ingid, I.shortname FROM shoppinglists as L \
 		LEFT JOIN shoplistcontain AS LC ON L.listid=LC.listid \
 		LEFT JOIN ingredients AS I ON LC.ingid=I.ingid \
@@ -816,8 +852,7 @@ def list_contain(userid, listid):
     lists_contain = []
     for record in cursor:
         lists_contain.append((record['quantity'],record['ingid'],record['shortname']))
-	
-    context['name']=record['name']
+
     #context['url']=record['url']
     cursor.close()
    
@@ -856,6 +891,25 @@ def list_ingredients_add(userid,listid):
         ## Add integrity checking
         #g.conn.execute(text(cmd), ingid = int(ingid), panid=panid);
     return redirect('/users/'+str(userid)+'/lists/view/' +str(listid))
+
+@app.route('/users/<userid>/list/new')
+def list_new(userid):
+    if not valid_userid(userid): 
+        return redirect('users/0')
+    context = {}
+    context['userid']=userid
+    return render_template('list_new.html',**context) 
+
+@app.route('/users/<userid>/list/add_new', methods=['POST'])
+def list_add_new(userid):
+    new_list = request.form['name']
+    print new_list
+    cmd = 'INSERT INTO shoppinglists (name, userid) VALUES (:new_list, :userid) RETURNING listid'
+    cursor = g.conn.execute(text(cmd), new_list=new_list, userid=userid);
+    temp=cursor.fetchone()
+    listid = temp['listid']
+    return redirect('/users/'+str(userid)+'/lists/view/'+str(listid))
+
 
 if __name__ == "__main__":
   import click

@@ -1,0 +1,15 @@
+{% extends "user.html" %}
+{% block content %}
+<div><h2>Create a new shopping list</h2></div>
+
+<div>
+    <form method="post" action="/users/{{userid}}/list/add_new">
+    <p>Shopping List Name: <input type="text" name="name"> </p>
+    <p><input type="submit" value="Add List"></p>
+    </form>
+    
+</div>
+<p>
+
+{% endblock %}
+
