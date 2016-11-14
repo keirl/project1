@@ -6,10 +6,14 @@
     <table>
         <tr>
             <th>Recipe Name</th>
+            <th>Rating</th>
+            <th>Categories</th>
         </tr>
-        {% for recid, recipename in recipes %}
+        {% for recid, recipename, rating, categories in recipes %}
         <tr>   
             <td><a href="/users/{{userid}}/recipe/view/{{recid}}">{{recipename}}</a></td>
+            <td>{{rating}}</td>
+            <td>{{categories}}</td>
         </tr> 
         {% endfor %}
     </table>

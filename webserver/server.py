@@ -431,7 +431,7 @@ def recipes_view(userid,recidx=0):
     cursor = g.conn.execute(text(cmd),recidx_incr=RECIDX_INCR,recidx=init_recidx);
     recipes = []
     for record in cursor:
-        recipes.append((record['recid'],record['recipename']))
+        recipes.append((record['recid'],record['recipename'],average_rating(record['recid']),categories_str(record['recid'])))
     cursor.close()
     
     print recipes
@@ -659,17 +659,54 @@ def recipe_new_add(userid):
     return redirect('/users/'+str(userid)+'/recipe/view/'+str(recid))
     
 @app.route('/users/<userid>/dinner')
-def recipe_new_add(userid):
+def dinner(userid):
     if not valid_userid(userid): 
         return redirect('users/0')
-    
-    cmd = 'SELECT username FROM shoplistcontain WHERE userid=:userid'
-    cursor = g.conn.execute(text(cmd),userid=str(userid));
-    temp = cursor.fetchone()
-    author = temp['username']
+    context={}
+    # Available ingredients
+    cmd = 'SELECT PC.ingid AS ingid\
+        FROM pantries as P JOIN pantriescontain AS PC ON P.panid=PC.panid \
+		WHERE P.userid=:userid \
+		UNION \
+		SELECT SC.ingid \
+        FROM shoppinglists as S JOIN shoplistcontain AS SC ON S.listid=SC.listid \
+		WHERE S.userid=:userid'
+    cursor = g.conn.execute(text(cmd),userid=userid);
+    avail_ingredients = []
+    for record in cursor:
+        avail_ingredients.append(record['ingid'])
     cursor.close()
     
-    return render_template('in_progress.html')
+    avail_ingredients = set(avail_ingredients)
+    print avail_ingredients
+    
+    # All recipes
+    cmd = 'SELECT recid, recipename FROM recipes'
+    cursor = g.conn.execute(text(cmd));
+    recid_list = []
+    for record in cursor:
+        recid_list.append((record['recid'],record['recipename']))
+    cursor.close()
+    # Get each recipe and compare
+    all_ingredients = []
+    for recid,recipename in recid_list:
+        cmd = 'SELECT ingid FROM recipescontain WHERE recid=:recid'
+        cursor = g.conn.execute(text(cmd),recid=recid);
+        ingid_list = []
+        for record in cursor:
+            ingid_list.append(record['ingid'])
+        cursor.close()
+        
+        ingid_set = set(ingid_list)
+        
+        if ingid_set.issubset(avail_ingredients):
+            all_ingredients.append((recid,recipename))
+    
+    context['recipes']=all_ingredients
+    context['userid']=userid
+    
+    
+    return render_template('dinner.html',**context)
 
 
 @app.route('/users/<userid>/pantries/view/')
@@ -686,7 +723,8 @@ def pantry_view(userid):
     #context['url']=record['url']
     cursor.close()
     
-    context['pantries_owned'] = pantries_owned    
+    context['pantries_owned'] = pantries_owned
+    context['userid'] = userid   
     return render_template("pantries.html",**context)
 
 @app.route('/users/<userid>/pantries/view/<panid>')
@@ -762,7 +800,8 @@ def lists_view(userid):
     #context['url']=record['url']
     cursor.close()
     
-    context['lists_owned'] = lists_owned    
+    context['lists_owned'] = lists_owned   
+    context['userid'] = userid 
     return render_template("lists.html",**context)
 
 @app.route('/users/<userid>/lists/view/<listid>')
